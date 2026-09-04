@@ -251,7 +251,10 @@ function NominasPage() {
       {selectedPayroll && (
         <PayrollDocumentModal
           open={documentOpen}
-          onOpenChange={setDocumentOpen}
+          onOpenChange={(v) => {
+            setDocumentOpen(v);
+            if (!v) setAutoAction(null);
+          }}
           payroll={selectedPayroll}
           autoAction={autoAction}
           onSaveSignature={handleSaveSignature}

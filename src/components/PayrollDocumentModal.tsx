@@ -61,20 +61,31 @@ export function PayrollDocumentModal({
   const year = payroll.period_year || new Date().getFullYear();
   const fileName = `Nomina_${(emp.full_name || "Empleado").replace(/\s+/g, "_")}_${monthName}_${year}.pdf`;
 
+  const autoActionDone = React.useRef(false);
+
   React.useEffect(() => {
-    if (open && autoAction) {
-      const timer = setTimeout(async () => {
-        setIsGeneratingPdf(true);
+    // Reset the guard when the modal opens with a new action
+    if (!open) {
+      autoActionDone.current = false;
+      return;
+    }
+    if (!autoAction || autoActionDone.current) return;
+
+    autoActionDone.current = true;
+    const timer = setTimeout(async () => {
+      setIsGeneratingPdf(true);
+      try {
         if (autoAction === "view") {
           await viewPayrollDocumentPdf("payroll-document");
         } else if (autoAction === "download") {
           await downloadPayrollDocumentPdf("payroll-document", fileName);
         }
+      } finally {
         setIsGeneratingPdf(false);
-      }, 400);
-      return () => clearTimeout(timer);
-    }
-  }, [open, autoAction]);
+      }
+    }, 600); // allow modal DOM to fully render before capturing
+    return () => clearTimeout(timer);
+  }, [open, autoAction, fileName]);
 
   const baseAmount = Number(payroll.base_amount || 0);
   const overtimeAmount = Number(payroll.overtime_amount || 0);
