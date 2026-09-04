@@ -71,7 +71,15 @@ function AusenciasPage() {
   const isStaff = me.data?.isStaff ?? false;
 
   const create = useMutation({
-    mutationFn: () => createFn({ data: { ...form, reason: form.reason || undefined } }),
+    mutationFn: () =>
+      createFn({
+        data: {
+          kind: form.kind,
+          start_date: form.start_date,
+          end_date: form.end_date,
+          ...(form.reason ? { reason: form.reason } : {}),
+        },
+      }),
     onSuccess: () => {
       toast.success("Solicitud enviada");
       setOpen(false);
