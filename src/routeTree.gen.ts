@@ -10,7 +10,6 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedAusenciasRouteImport } from './routes/_authenticated/ausencias'
 import { Route as AuthenticatedEmpleadosRouteImport } from './routes/_authenticated/empleados'
@@ -24,44 +23,40 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
-  id: '/_authenticated',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedAusenciasRoute = AuthenticatedAusenciasRouteImport.update({
-  id: '/ausencias',
+  id: '/_authenticated/ausencias',
   path: '/ausencias',
-  getParentRoute: () => AuthenticatedRouteRoute,
+  getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedEmpleadosRoute = AuthenticatedEmpleadosRouteImport.update({
-  id: '/empleados',
+  id: '/_authenticated/empleados',
   path: '/empleados',
-  getParentRoute: () => AuthenticatedRouteRoute,
+  getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedFichajesRoute = AuthenticatedFichajesRouteImport.update({
-  id: '/fichajes',
+  id: '/_authenticated/fichajes',
   path: '/fichajes',
-  getParentRoute: () => AuthenticatedRouteRoute,
+  getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedFicharRoute = AuthenticatedFicharRouteImport.update({
-  id: '/fichar',
+  id: '/_authenticated/fichar',
   path: '/fichar',
-  getParentRoute: () => AuthenticatedRouteRoute,
+  getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedNominasRoute = AuthenticatedNominasRouteImport.update({
-  id: '/nominas',
+  id: '/_authenticated/nominas',
   path: '/nominas',
-  getParentRoute: () => AuthenticatedRouteRoute,
+  getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedPanelRoute = AuthenticatedPanelRouteImport.update({
-  id: '/panel',
+  id: '/_authenticated/panel',
   path: '/panel',
-  getParentRoute: () => AuthenticatedRouteRoute,
+  getParentRoute: () => rootRouteImport,
 } as any)
 
 export interface FileRoutesByFullPath {
@@ -87,7 +82,6 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
   '/_authenticated/ausencias': typeof AuthenticatedAusenciasRoute
   '/_authenticated/empleados': typeof AuthenticatedEmpleadosRoute
@@ -120,7 +114,6 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
-    | '/_authenticated'
     | '/auth'
     | '/_authenticated/ausencias'
     | '/_authenticated/empleados'
@@ -132,8 +125,13 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
+  AuthenticatedAusenciasRoute: typeof AuthenticatedAusenciasRoute
+  AuthenticatedEmpleadosRoute: typeof AuthenticatedEmpleadosRoute
+  AuthenticatedFichajesRoute: typeof AuthenticatedFichajesRoute
+  AuthenticatedFicharRoute: typeof AuthenticatedFicharRoute
+  AuthenticatedNominasRoute: typeof AuthenticatedNominasRoute
+  AuthenticatedPanelRoute: typeof AuthenticatedPanelRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -143,13 +141,6 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/_authenticated': {
-      id: '/_authenticated'
-      path: ''
-      fullPath: '/'
-      preLoaderRoute: typeof AuthenticatedRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auth': {
@@ -164,71 +155,55 @@ declare module '@tanstack/react-router' {
       path: '/ausencias'
       fullPath: '/ausencias'
       preLoaderRoute: typeof AuthenticatedAusenciasRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
+      parentRoute: typeof rootRouteImport
     }
     '/_authenticated/empleados': {
       id: '/_authenticated/empleados'
       path: '/empleados'
       fullPath: '/empleados'
       preLoaderRoute: typeof AuthenticatedEmpleadosRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
+      parentRoute: typeof rootRouteImport
     }
     '/_authenticated/fichajes': {
       id: '/_authenticated/fichajes'
       path: '/fichajes'
       fullPath: '/fichajes'
       preLoaderRoute: typeof AuthenticatedFichajesRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
+      parentRoute: typeof rootRouteImport
     }
     '/_authenticated/fichar': {
       id: '/_authenticated/fichar'
       path: '/fichar'
       fullPath: '/fichar'
       preLoaderRoute: typeof AuthenticatedFicharRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
+      parentRoute: typeof rootRouteImport
     }
     '/_authenticated/nominas': {
       id: '/_authenticated/nominas'
       path: '/nominas'
       fullPath: '/nominas'
       preLoaderRoute: typeof AuthenticatedNominasRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
+      parentRoute: typeof rootRouteImport
     }
     '/_authenticated/panel': {
       id: '/_authenticated/panel'
       path: '/panel'
       fullPath: '/panel'
       preLoaderRoute: typeof AuthenticatedPanelRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
+      parentRoute: typeof rootRouteImport
     }
   }
 }
 
-interface AuthenticatedRouteRouteChildren {
-  AuthenticatedAusenciasRoute: typeof AuthenticatedAusenciasRoute
-  AuthenticatedEmpleadosRoute: typeof AuthenticatedEmpleadosRoute
-  AuthenticatedFichajesRoute: typeof AuthenticatedFichajesRoute
-  AuthenticatedFicharRoute: typeof AuthenticatedFicharRoute
-  AuthenticatedNominasRoute: typeof AuthenticatedNominasRoute
-  AuthenticatedPanelRoute: typeof AuthenticatedPanelRoute
-}
-
-const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+const rootRouteChildren: RootRouteChildren = {
+  IndexRoute: IndexRoute,
+  AuthRoute: AuthRoute,
   AuthenticatedAusenciasRoute: AuthenticatedAusenciasRoute,
   AuthenticatedEmpleadosRoute: AuthenticatedEmpleadosRoute,
   AuthenticatedFichajesRoute: AuthenticatedFichajesRoute,
   AuthenticatedFicharRoute: AuthenticatedFicharRoute,
   AuthenticatedNominasRoute: AuthenticatedNominasRoute,
   AuthenticatedPanelRoute: AuthenticatedPanelRoute,
-}
-
-const AuthenticatedRouteRouteWithChildren =
-  AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
-
-const rootRouteChildren: RootRouteChildren = {
-  IndexRoute: IndexRoute,
-  AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
-  AuthRoute: AuthRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
