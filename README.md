@@ -660,6 +660,34 @@ Extras recomendados para una versión profesional:
 
  Panel con indicadores de productividad y costes laborales en tiempo real.
 
+## Despliegue e Instalación Independiente
+
+### 1. Backend (Supabase)
+1. Crea un proyecto en [Supabase](https://supabase.com).
+2. Ejecuta la migración de base de datos en `drizzle/migrations/0000_create_taller_core.sql` desde el SQL Editor de Supabase.
+3. Copia tus claves de API (`SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SERVICE_ROLE_KEY`).
+
+### 2. Desarrollo Local
+1. Clona este repositorio.
+2. Copia `.env.example` o configura las variables de entorno en `.env`:
+   ```env
+   VITE_SUPABASE_URL="https://tu-proyecto.supabase.co"
+   VITE_SUPABASE_PUBLISHABLE_KEY="tu-anon-key"
+   SUPABASE_URL="https://tu-proyecto.supabase.co"
+   SUPABASE_PUBLISHABLE_KEY="tu-anon-key"
+   SUPABASE_SERVICE_ROLE_KEY="tu-service-role-key"
+   ```
+3. Instala las dependencias y ejecuta el servidor de desarrollo:
+   ```sh
+   npm install
+   npm run dev
+   ```
+
+### 3. Despliegue en Vercel
+1. Importa este repositorio en Vercel.
+2. Configura las variables de entorno (`VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SERVICE_ROLE_KEY`).
+3. El comando de build es `npm run build`.
+
 This project was built with [Lovable](https://lovable.dev).
 
 **Live app**: https://gear-up-time.lovable.app
