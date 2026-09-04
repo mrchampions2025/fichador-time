@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedEmpleadosRouteImport } from './routes/_authenticated/empleados'
+import { Route as AuthenticatedFichajesRouteImport } from './routes/_authenticated/fichajes'
 import { Route as AuthenticatedFicharRouteImport } from './routes/_authenticated/fichar'
 import { Route as AuthenticatedPanelRouteImport } from './routes/_authenticated/panel'
 
@@ -35,6 +36,11 @@ const AuthenticatedEmpleadosRoute = AuthenticatedEmpleadosRouteImport.update({
   path: '/empleados',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedFichajesRoute = AuthenticatedFichajesRouteImport.update({
+  id: '/fichajes',
+  path: '/fichajes',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedFicharRoute = AuthenticatedFicharRouteImport.update({
   id: '/fichar',
   path: '/fichar',
@@ -50,6 +56,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/empleados': typeof AuthenticatedEmpleadosRoute
+  '/fichajes': typeof AuthenticatedFichajesRoute
   '/fichar': typeof AuthenticatedFicharRoute
   '/panel': typeof AuthenticatedPanelRoute
 }
@@ -57,6 +64,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/empleados': typeof AuthenticatedEmpleadosRoute
+  '/fichajes': typeof AuthenticatedFichajesRoute
   '/fichar': typeof AuthenticatedFicharRoute
   '/panel': typeof AuthenticatedPanelRoute
 }
@@ -66,20 +74,22 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
   '/_authenticated/empleados': typeof AuthenticatedEmpleadosRoute
+  '/_authenticated/fichajes': typeof AuthenticatedFichajesRoute
   '/_authenticated/fichar': typeof AuthenticatedFicharRoute
   '/_authenticated/panel': typeof AuthenticatedPanelRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/auth' | '/empleados' | '/fichar' | '/panel'
+  fullPaths: '/' | '/auth' | '/empleados' | '/fichajes' | '/fichar' | '/panel'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/auth' | '/empleados' | '/fichar' | '/panel'
+  to: '/' | '/auth' | '/empleados' | '/fichajes' | '/fichar' | '/panel'
   id:
     | '__root__'
     | '/'
     | '/_authenticated'
     | '/auth'
     | '/_authenticated/empleados'
+    | '/_authenticated/fichajes'
     | '/_authenticated/fichar'
     | '/_authenticated/panel'
   fileRoutesById: FileRoutesById
@@ -120,6 +130,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedEmpleadosRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/fichajes': {
+      id: '/_authenticated/fichajes'
+      path: '/fichajes'
+      fullPath: '/fichajes'
+      preLoaderRoute: typeof AuthenticatedFichajesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/fichar': {
       id: '/_authenticated/fichar'
       path: '/fichar'
@@ -139,12 +156,14 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedEmpleadosRoute: typeof AuthenticatedEmpleadosRoute
+  AuthenticatedFichajesRoute: typeof AuthenticatedFichajesRoute
   AuthenticatedFicharRoute: typeof AuthenticatedFicharRoute
   AuthenticatedPanelRoute: typeof AuthenticatedPanelRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedEmpleadosRoute: AuthenticatedEmpleadosRoute,
+  AuthenticatedFichajesRoute: AuthenticatedFichajesRoute,
   AuthenticatedFicharRoute: AuthenticatedFicharRoute,
   AuthenticatedPanelRoute: AuthenticatedPanelRoute,
 }
