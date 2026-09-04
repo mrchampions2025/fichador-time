@@ -49,6 +49,8 @@ type EmployeeForm = {
   weekly_hours: number;
   active: boolean;
   user_id?: string | null;
+  password?: string;
+  role?: (typeof ROLES)[number];
 };
 
 const EMPTY: EmployeeForm = {
@@ -61,6 +63,8 @@ const EMPTY: EmployeeForm = {
   overtime_multiplier: 1.5,
   weekly_hours: 40,
   active: true,
+  password: "",
+  role: "empleado",
 };
 
 const ROLES = ["gerente", "encargado", "administracion", "empleado"] as const;
@@ -87,11 +91,14 @@ function EmpleadosPage() {
         overtime_multiplier: Number(form.overtime_multiplier),
         weekly_hours: Number(form.weekly_hours),
         active: form.active,
+        ...(form.password ? { password: form.password } : {}),
+        role: form.role,
       }),
     onSuccess: () => {
-      toast.success("Empleado guardado");
+      toast.success("Empleado guardado con éxito");
       setOpen(false);
       qc.invalidateQueries({ queryKey: ["employees"] });
+      qc.invalidateQueries({ queryKey: ["roles"] });
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -138,15 +145,22 @@ function EmpleadosPage() {
                   <p className="text-sm text-muted-foreground">
                     {e.position} · {e.email ?? "sin correo"}
                   </p>
+                  <div className="mt-1">
+                    {e.user_id ? (
+                      <Badge variant="outline" className="text-xs bg-emerald-500/10 text-emerald-600 border-emerald-500/20">
+                        Con usuario Auth activado
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className="text-xs bg-amber-500/10 text-amber-600 border-amber-500/20">
+                        Pendiente de inicio de sesión
+                      </Badge>
+                    )}
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Badge variant={e.active ? "default" : "secondary"}>
-                    {e.active ? "Activo" : "Baja"}
-                  </Badge>
+                <div className="flex gap-2">
                   <Button
-                    size="icon"
                     variant="outline"
-                    aria-label="Editar"
+                    size="sm"
                     onClick={() => {
                       setForm({
                         id: e.id,
@@ -160,34 +174,36 @@ function EmpleadosPage() {
                         weekly_hours: Number(e.weekly_hours),
                         active: e.active,
                         user_id: e.user_id,
+                        password: "",
+                        role: e.user_id ? roleOf(e.user_id) : "empleado",
                       });
                       setOpen(true);
                     }}
                   >
-                    <Pencil className="size-4" />
+                    <Pencil className="mr-1 size-3.5" /> Editar
                   </Button>
                 </div>
               </div>
-              <div className="grid grid-cols-3 gap-2 text-sm">
+              <div className="grid grid-cols-3 gap-2">
                 <Info label="Precio/hora" value={formatEuro(Number(e.hourly_rate))} />
-                <Info label="Recargo extra" value={`x${Number(e.overtime_multiplier)}`} />
-                <Info label="Jornada" value={`${Number(e.weekly_hours)} h/sem`} />
+                <Info label="Recargo extra" value={`${e.overtime_multiplier}x`} />
+                <Info label="Jornada sem." value={`${e.weekly_hours}h`} />
               </div>
               {e.user_id && (
-                <div className="flex items-center gap-2 pt-1">
-                  <span className="text-xs text-muted-foreground">Rol:</span>
+                <div className="flex items-center justify-between pt-2">
+                  <span className="text-xs text-muted-foreground">Rol de usuario</span>
                   <Select
                     value={roleOf(e.user_id)}
-                    onValueChange={(v) =>
-                      changeRole.mutate({ targetUserId: e.user_id, role: v as any })
+                    onValueChange={(r: any) =>
+                      changeRole.mutate({ targetUserId: e.user_id, role: r })
                     }
                   >
-                    <SelectTrigger className="h-8 w-44">
+                    <SelectTrigger className="h-8 w-36 text-xs">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
                       {ROLES.map((r) => (
-                        <SelectItem key={r} value={r}>
+                        <SelectItem key={r} value={r} className="text-xs">
                           {r}
                         </SelectItem>
                       ))}
@@ -203,9 +219,9 @@ function EmpleadosPage() {
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{form.id ? "Editar empleado" : "Nuevo empleado"}</DialogTitle>
+            <DialogTitle>{form.id ? "Editar empleado" : "Nuevo empleado con acceso"}</DialogTitle>
             <DialogDescription>
-              Los datos laborales se usan para calcular horas extras y nóminas.
+              Los datos laborales se usan para calcular horas extras y generar las nóminas.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 sm:grid-cols-2">
@@ -213,6 +229,7 @@ function EmpleadosPage() {
               <Input
                 value={form.full_name}
                 onChange={(e) => setForm({ ...form, full_name: e.target.value })}
+                placeholder="Ej: Juan Pérez"
               />
             </Field>
             <Field label="DNI">
@@ -224,11 +241,12 @@ function EmpleadosPage() {
                 onChange={(e) => setForm({ ...form, position: e.target.value })}
               />
             </Field>
-            <Field label="Correo">
+            <Field label="Correo electrónico">
               <Input
                 type="email"
                 value={form.email}
                 onChange={(e) => setForm({ ...form, email: e.target.value })}
+                placeholder="empleado@taller.com"
               />
             </Field>
             <Field label="Teléfono">
@@ -261,13 +279,41 @@ function EmpleadosPage() {
                 onChange={(e) => setForm({ ...form, weekly_hours: Number(e.target.value) })}
               />
             </Field>
-            <div className="flex items-center gap-3 pt-6">
+            <Field label="Rol de acceso al sistema">
+              <Select
+                value={form.role ?? "empleado"}
+                onValueChange={(v: any) => setForm({ ...form, role: v })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {ROLES.map((r) => (
+                    <SelectItem key={r} value={r}>
+                      {r.toUpperCase()}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </Field>
+            <Field label="Contraseña inicial de acceso" className="sm:col-span-2">
+              <Input
+                type="password"
+                placeholder={form.id ? "Dejar en blanco para no cambiar" : "Contraseña para entrar a la web"}
+                value={form.password ?? ""}
+                onChange={(e) => setForm({ ...form, password: e.target.value })}
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Al asignar correo y contraseña, el empleado podrá acceder directamente a la aplicación para fichar su jornada.
+              </p>
+            </Field>
+            <div className="flex items-center gap-3 pt-2 sm:col-span-2">
               <Switch
                 checked={form.active}
                 onCheckedChange={(v) => setForm({ ...form, active: v })}
                 id="active"
               />
-              <Label htmlFor="active">Empleado activo</Label>
+              <Label htmlFor="active">Empleado activo en plantilla</Label>
             </div>
           </div>
           <DialogFooter>
@@ -275,7 +321,7 @@ function EmpleadosPage() {
               Cancelar
             </Button>
             <Button onClick={() => save.mutate()} disabled={save.isPending || !form.full_name}>
-              Guardar
+              {save.isPending ? "Guardando…" : "Guardar Empleado"}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -1,4 +1,4 @@
-﻿import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/client";
 import { monthRange, splitOvertime, sumHours } from "./hours";
 
 type Role = "gerente" | "encargado" | "administracion" | "empleado";
@@ -45,11 +45,28 @@ export async function bootstrapAccount() {
       .insert({ user_id: userId, role: (count ?? 0) === 0 ? "gerente" : "empleado" });
   }
 
-  const { data: emp } = await supabase
+  let { data: emp } = await supabase
     .from("employees")
     .select("id")
     .eq("user_id", userId)
     .maybeSingle();
+
+  if (!emp && email) {
+    const { data: empByEmail } = await supabase
+      .from("employees")
+      .select("id")
+      .eq("email", email)
+      .maybeSingle();
+
+    if (empByEmail) {
+      await supabase
+        .from("employees")
+        .update({ user_id: userId })
+        .eq("id", empByEmail.id);
+      emp = empByEmail;
+    }
+  }
+
   if (!emp) {
     await supabase.from("employees").insert({ user_id: userId, full_name: name, email });
   }
