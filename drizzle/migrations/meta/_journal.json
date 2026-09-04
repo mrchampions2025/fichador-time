@@ -1,5 +1,13 @@
 {
   "version": "7",
   "dialect": "postgresql",
-  "entries": []
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1788512334423,
+      "tag": "0000_create_taller_core",
+      "breakpoints": true
+    }
+  ]
 }
