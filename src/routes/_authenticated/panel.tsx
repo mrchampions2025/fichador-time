@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { AuthGate } from "@/components/AuthGate";
 import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { AlarmClock, CalendarClock, Euro, Users } from "lucide-react";
@@ -33,7 +34,12 @@ export const Route = createFileRoute("/_authenticated/panel")({
       { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
-  component: PanelPage,
+  ssr: false,
+  component: () => (
+    <AuthGate>
+      <PanelPage />
+    </AuthGate>
+  ),
 });
 
 function PanelPage() {
