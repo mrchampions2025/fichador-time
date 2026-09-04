@@ -1,4 +1,4 @@
-import html2canvas from "html2canvas";
+import { toPng } from "html-to-image";
 import jsPDF from "jspdf";
 import { toast } from "sonner";
 
@@ -40,25 +40,27 @@ async function capturePdf(elementId: string): Promise<jsPDF | null> {
     return null;
   }
 
-  // Pre-process: inline all images to avoid CORS canvas taint
+  // Add temporary class to replace oklch colors with hex for PDF generation
+  document.body.classList.add('pdf-export');
   await inlineImages(element);
 
-  const canvas = await html2canvas(element, {
-    scale: 2,
-    useCORS: true,
-    logging: false,
+  const imgData = await toPng(element, {
+    pixelRatio: 2,
     backgroundColor: "#ffffff",
-    // Remove elements that shouldn't be in the PDF
-    ignoreElements: (el) => {
-      return el.classList?.contains("print:hidden") || el.hasAttribute("data-no-pdf");
+    filter: (node) => {
+      if (node instanceof HTMLElement) {
+        return !(node.classList?.contains("print:hidden") || node.hasAttribute("data-no-pdf"));
+      }
+      return true;
     },
   });
 
-  const imgData = canvas.toDataURL("image/png");
+  document.body.classList.remove('pdf-export');
+
   const pdf = new jsPDF("p", "mm", "a4");
   const pageWidth = pdf.internal.pageSize.getWidth();
   const pageHeight = pdf.internal.pageSize.getHeight();
-  const imgHeight = (canvas.height * pageWidth) / canvas.width;
+  const imgHeight = (element.offsetHeight * pageWidth) / element.offsetWidth;
 
   // Handle multi-page if the content is taller than one A4 page
   let position = 0;

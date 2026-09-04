@@ -156,10 +156,13 @@ export function PayrollDocumentModal({
   };
 
   const handleDownloadPdf = async () => {
+    console.log("Downloading PDF with fileName:", fileName);
     toast.info("Iniciando descarga PDF...");
     setIsGeneratingPdf(true);
     try {
       await downloadPayrollDocumentPdf("payroll-document", fileName);
+    } catch (err) {
+      console.error("Download PDF error:", err);
     } finally {
       setIsGeneratingPdf(false);
     }
