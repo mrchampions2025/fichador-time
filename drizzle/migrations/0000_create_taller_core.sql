@@ -1,6 +1,10 @@
-CREATE TYPE public.app_role AS ENUM ('gerente','encargado','administracion','empleado');
+DO $$ BEGIN
+    CREATE TYPE public.app_role AS ENUM ('gerente','encargado','administracion','empleado');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
 
-CREATE TABLE public.profiles (
+CREATE TABLE IF NOT EXISTS public.profiles (
   id UUID PRIMARY KEY,
   full_name TEXT NOT NULL DEFAULT '',
   email TEXT,
@@ -10,7 +14,7 @@ GRANT SELECT, INSERT, UPDATE ON public.profiles TO authenticated;
 GRANT ALL ON public.profiles TO service_role;
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 
-CREATE TABLE public.user_roles (
+CREATE TABLE IF NOT EXISTS public.user_roles (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL,
   role public.app_role NOT NULL,
@@ -34,7 +38,7 @@ RETURNS BOOLEAN LANGUAGE SQL STABLE SECURITY DEFINER SET search_path = public AS
   );
 $$;
 
-CREATE TABLE public.employees (
+CREATE TABLE IF NOT EXISTS public.employees (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID UNIQUE,
   full_name TEXT NOT NULL,
@@ -58,7 +62,7 @@ RETURNS UUID LANGUAGE SQL STABLE SECURITY DEFINER SET search_path = public AS $$
   SELECT id FROM public.employees WHERE user_id = auth.uid() LIMIT 1;
 $$;
 
-CREATE TABLE public.time_entries (
+CREATE TABLE IF NOT EXISTS public.time_entries (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   employee_id UUID NOT NULL REFERENCES public.employees(id) ON DELETE CASCADE,
   clock_in TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -70,12 +74,12 @@ CREATE TABLE public.time_entries (
   source TEXT NOT NULL DEFAULT 'web',
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
-CREATE INDEX time_entries_employee_idx ON public.time_entries (employee_id, clock_in DESC);
+CREATE INDEX IF NOT EXISTS time_entries_employee_idx ON public.time_entries (employee_id, clock_in DESC);
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.time_entries TO authenticated;
 GRANT ALL ON public.time_entries TO service_role;
 ALTER TABLE public.time_entries ENABLE ROW LEVEL SECURITY;
 
-CREATE TABLE public.absence_requests (
+CREATE TABLE IF NOT EXISTS public.absence_requests (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   employee_id UUID NOT NULL REFERENCES public.employees(id) ON DELETE CASCADE,
   kind TEXT NOT NULL DEFAULT 'vacaciones',
@@ -90,7 +94,7 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON public.absence_requests TO authenticated
 GRANT ALL ON public.absence_requests TO service_role;
 ALTER TABLE public.absence_requests ENABLE ROW LEVEL SECURITY;
 
-CREATE TABLE public.payrolls (
+CREATE TABLE IF NOT EXISTS public.payrolls (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   employee_id UUID NOT NULL REFERENCES public.employees(id) ON DELETE CASCADE,
   period_year INTEGER NOT NULL,
@@ -110,31 +114,54 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON public.payrolls TO authenticated;
 GRANT ALL ON public.payrolls TO service_role;
 ALTER TABLE public.payrolls ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "own profile select" ON public.profiles;
 CREATE POLICY "own profile select" ON public.profiles FOR SELECT TO authenticated USING (id = auth.uid() OR public.is_staff(auth.uid()));
+DROP POLICY IF EXISTS "own profile insert" ON public.profiles;
 CREATE POLICY "own profile insert" ON public.profiles FOR INSERT TO authenticated WITH CHECK (id = auth.uid());
+DROP POLICY IF EXISTS "own profile update" ON public.profiles;
 CREATE POLICY "own profile update" ON public.profiles FOR UPDATE TO authenticated USING (id = auth.uid());
 
+DROP POLICY IF EXISTS "read own roles" ON public.user_roles;
 CREATE POLICY "read own roles" ON public.user_roles FOR SELECT TO authenticated USING (user_id = auth.uid() OR public.is_staff(auth.uid()));
+DROP POLICY IF EXISTS "insert roles" ON public.user_roles;
 CREATE POLICY "insert roles" ON public.user_roles FOR INSERT TO authenticated WITH CHECK (user_id = auth.uid() OR public.is_staff(auth.uid()));
+DROP POLICY IF EXISTS "update roles" ON public.user_roles;
 CREATE POLICY "update roles" ON public.user_roles FOR UPDATE TO authenticated USING (public.is_staff(auth.uid()));
+DROP POLICY IF EXISTS "delete roles" ON public.user_roles;
 CREATE POLICY "delete roles" ON public.user_roles FOR DELETE TO authenticated USING (public.is_staff(auth.uid()));
 
+DROP POLICY IF EXISTS "employees select" ON public.employees;
 CREATE POLICY "employees select" ON public.employees FOR SELECT TO authenticated USING (user_id = auth.uid() OR public.is_staff(auth.uid()));
+DROP POLICY IF EXISTS "employees insert" ON public.employees;
 CREATE POLICY "employees insert" ON public.employees FOR INSERT TO authenticated WITH CHECK (public.is_staff(auth.uid()));
+DROP POLICY IF EXISTS "employees update" ON public.employees;
 CREATE POLICY "employees update" ON public.employees FOR UPDATE TO authenticated USING (public.is_staff(auth.uid()));
+DROP POLICY IF EXISTS "employees delete" ON public.employees;
 CREATE POLICY "employees delete" ON public.employees FOR DELETE TO authenticated USING (public.has_role(auth.uid(),'gerente'));
 
+DROP POLICY IF EXISTS "entries select" ON public.time_entries;
 CREATE POLICY "entries select" ON public.time_entries FOR SELECT TO authenticated USING (employee_id = public.current_employee_id() OR public.is_staff(auth.uid()));
+DROP POLICY IF EXISTS "entries insert" ON public.time_entries;
 CREATE POLICY "entries insert" ON public.time_entries FOR INSERT TO authenticated WITH CHECK (employee_id = public.current_employee_id() OR public.is_staff(auth.uid()));
+DROP POLICY IF EXISTS "entries update" ON public.time_entries;
 CREATE POLICY "entries update" ON public.time_entries FOR UPDATE TO authenticated USING (employee_id = public.current_employee_id() OR public.is_staff(auth.uid()));
+DROP POLICY IF EXISTS "entries delete" ON public.time_entries;
 CREATE POLICY "entries delete" ON public.time_entries FOR DELETE TO authenticated USING (public.is_staff(auth.uid()));
 
+DROP POLICY IF EXISTS "absences select" ON public.absence_requests;
 CREATE POLICY "absences select" ON public.absence_requests FOR SELECT TO authenticated USING (employee_id = public.current_employee_id() OR public.is_staff(auth.uid()));
+DROP POLICY IF EXISTS "absences insert" ON public.absence_requests;
 CREATE POLICY "absences insert" ON public.absence_requests FOR INSERT TO authenticated WITH CHECK (employee_id = public.current_employee_id() OR public.is_staff(auth.uid()));
+DROP POLICY IF EXISTS "absences update" ON public.absence_requests;
 CREATE POLICY "absences update" ON public.absence_requests FOR UPDATE TO authenticated USING (public.is_staff(auth.uid()));
+DROP POLICY IF EXISTS "absences delete" ON public.absence_requests;
 CREATE POLICY "absences delete" ON public.absence_requests FOR DELETE TO authenticated USING (public.is_staff(auth.uid()));
 
+DROP POLICY IF EXISTS "payrolls select" ON public.payrolls;
 CREATE POLICY "payrolls select" ON public.payrolls FOR SELECT TO authenticated USING (employee_id = public.current_employee_id() OR public.is_staff(auth.uid()));
+DROP POLICY IF EXISTS "payrolls write" ON public.payrolls;
 CREATE POLICY "payrolls write" ON public.payrolls FOR INSERT TO authenticated WITH CHECK (public.is_staff(auth.uid()));
+DROP POLICY IF EXISTS "payrolls update" ON public.payrolls;
 CREATE POLICY "payrolls update" ON public.payrolls FOR UPDATE TO authenticated USING (public.is_staff(auth.uid()));
+DROP POLICY IF EXISTS "payrolls delete" ON public.payrolls;
 CREATE POLICY "payrolls delete" ON public.payrolls FOR DELETE TO authenticated USING (public.is_staff(auth.uid()));
