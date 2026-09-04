@@ -10,33 +10,130 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
+import { Route as AuthRouteImport } from './routes/auth'
+import { Route as AuthenticatedAusenciasRouteImport } from './routes/_authenticated/ausencias'
+import { Route as AuthenticatedEmpleadosRouteImport } from './routes/_authenticated/empleados'
+import { Route as AuthenticatedFichajesRouteImport } from './routes/_authenticated/fichajes'
+import { Route as AuthenticatedFicharRouteImport } from './routes/_authenticated/fichar'
+import { Route as AuthenticatedNominasRouteImport } from './routes/_authenticated/nominas'
+import { Route as AuthenticatedPanelRouteImport } from './routes/_authenticated/panel'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
+  id: '/_authenticated',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedAusenciasRoute = AuthenticatedAusenciasRouteImport.update({
+  id: '/ausencias',
+  path: '/ausencias',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedEmpleadosRoute = AuthenticatedEmpleadosRouteImport.update({
+  id: '/empleados',
+  path: '/empleados',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedFichajesRoute = AuthenticatedFichajesRouteImport.update({
+  id: '/fichajes',
+  path: '/fichajes',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedFicharRoute = AuthenticatedFicharRouteImport.update({
+  id: '/fichar',
+  path: '/fichar',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedNominasRoute = AuthenticatedNominasRouteImport.update({
+  id: '/nominas',
+  path: '/nominas',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedPanelRoute = AuthenticatedPanelRouteImport.update({
+  id: '/panel',
+  path: '/panel',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
+  '/ausencias': typeof AuthenticatedAusenciasRoute
+  '/empleados': typeof AuthenticatedEmpleadosRoute
+  '/fichajes': typeof AuthenticatedFichajesRoute
+  '/fichar': typeof AuthenticatedFicharRoute
+  '/nominas': typeof AuthenticatedNominasRoute
+  '/panel': typeof AuthenticatedPanelRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
+  '/ausencias': typeof AuthenticatedAusenciasRoute
+  '/empleados': typeof AuthenticatedEmpleadosRoute
+  '/fichajes': typeof AuthenticatedFichajesRoute
+  '/fichar': typeof AuthenticatedFicharRoute
+  '/nominas': typeof AuthenticatedNominasRoute
+  '/panel': typeof AuthenticatedPanelRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
+  '/auth': typeof AuthRoute
+  '/_authenticated/ausencias': typeof AuthenticatedAusenciasRoute
+  '/_authenticated/empleados': typeof AuthenticatedEmpleadosRoute
+  '/_authenticated/fichajes': typeof AuthenticatedFichajesRoute
+  '/_authenticated/fichar': typeof AuthenticatedFicharRoute
+  '/_authenticated/nominas': typeof AuthenticatedNominasRoute
+  '/_authenticated/panel': typeof AuthenticatedPanelRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/auth'
+    | '/ausencias'
+    | '/empleados'
+    | '/fichajes'
+    | '/fichar'
+    | '/nominas'
+    | '/panel'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/auth'
+    | '/ausencias'
+    | '/empleados'
+    | '/fichajes'
+    | '/fichar'
+    | '/nominas'
+    | '/panel'
+  id:
+    | '__root__'
+    | '/'
+    | '/_authenticated'
+    | '/auth'
+    | '/_authenticated/ausencias'
+    | '/_authenticated/empleados'
+    | '/_authenticated/fichajes'
+    | '/_authenticated/fichar'
+    | '/_authenticated/nominas'
+    | '/_authenticated/panel'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
+  AuthRoute: typeof AuthRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -48,11 +145,90 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated': {
+      id: '/_authenticated'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthenticatedRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/ausencias': {
+      id: '/_authenticated/ausencias'
+      path: '/ausencias'
+      fullPath: '/ausencias'
+      preLoaderRoute: typeof AuthenticatedAusenciasRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/empleados': {
+      id: '/_authenticated/empleados'
+      path: '/empleados'
+      fullPath: '/empleados'
+      preLoaderRoute: typeof AuthenticatedEmpleadosRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/fichajes': {
+      id: '/_authenticated/fichajes'
+      path: '/fichajes'
+      fullPath: '/fichajes'
+      preLoaderRoute: typeof AuthenticatedFichajesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/fichar': {
+      id: '/_authenticated/fichar'
+      path: '/fichar'
+      fullPath: '/fichar'
+      preLoaderRoute: typeof AuthenticatedFicharRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/nominas': {
+      id: '/_authenticated/nominas'
+      path: '/nominas'
+      fullPath: '/nominas'
+      preLoaderRoute: typeof AuthenticatedNominasRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/panel': {
+      id: '/_authenticated/panel'
+      path: '/panel'
+      fullPath: '/panel'
+      preLoaderRoute: typeof AuthenticatedPanelRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
   }
 }
 
+interface AuthenticatedRouteRouteChildren {
+  AuthenticatedAusenciasRoute: typeof AuthenticatedAusenciasRoute
+  AuthenticatedEmpleadosRoute: typeof AuthenticatedEmpleadosRoute
+  AuthenticatedFichajesRoute: typeof AuthenticatedFichajesRoute
+  AuthenticatedFicharRoute: typeof AuthenticatedFicharRoute
+  AuthenticatedNominasRoute: typeof AuthenticatedNominasRoute
+  AuthenticatedPanelRoute: typeof AuthenticatedPanelRoute
+}
+
+const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedAusenciasRoute: AuthenticatedAusenciasRoute,
+  AuthenticatedEmpleadosRoute: AuthenticatedEmpleadosRoute,
+  AuthenticatedFichajesRoute: AuthenticatedFichajesRoute,
+  AuthenticatedFicharRoute: AuthenticatedFicharRoute,
+  AuthenticatedNominasRoute: AuthenticatedNominasRoute,
+  AuthenticatedPanelRoute: AuthenticatedPanelRoute,
+}
+
+const AuthenticatedRouteRouteWithChildren =
+  AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
+  AuthRoute: AuthRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
