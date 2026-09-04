@@ -11,8 +11,10 @@ import { Label } from "@/components/ui/label";
 import { SignatureCanvas } from "./SignatureCanvas";
 import { formatEuro, MONTHS_ES } from "@/lib/hours";
 import { getCompanySettings } from "@/lib/company.settings";
-import { Printer, Share2, Save, Send, Plus, Trash2 } from "lucide-react";
+import { Printer, Share2, Download, Plus, Trash2, Eye } from "lucide-react";
 import { toast } from "sonner";
+import html2canvas from "html2canvas";
+import jsPDF from "jspdf";
 
 export type AdjustmentItem = {
   id: string;
@@ -51,6 +53,7 @@ export function PayrollDocumentModal({
   const [newNote, setNewNote] = useState("");
   const [newAmount, setNewAmount] = useState("");
   const [newType, setNewType] = useState<"anticipo" | "extra">("anticipo");
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
 
   const emp = payroll.employees || {};
   const monthName = MONTHS_ES[(payroll.period_month || 1) - 1] || "Periodo";
@@ -100,7 +103,7 @@ export function PayrollDocumentModal({
     if (onSaveSignature) {
       onSaveSignature(payroll.id, dataUrl);
     }
-    toast.success("Firma del trabajador guardada");
+    toast.success("Firma del trabajador guardada con éxito");
   };
 
   const handleWhatsAppShare = () => {
@@ -112,10 +115,73 @@ export function PayrollDocumentModal({
       `• Anticipos/Descuentos: ${formatEuro(totalDiscounts)}\n` +
       `• Gastos/Trabajos Extras: ${formatEuro(totalExtras)}\n` +
       `• TOTAL A PAGAR: ${formatEuro(totalToPay)}\n\n` +
-      `Puedes firmar tu nómina accediendo a la web.`
+      `Puedes acceder al panel para revisar y firmar digitalmente tu nómina.`
     );
     const url = phone ? `https://wa.me/${phone}?text=${text}` : `https://api.whatsapp.com/send?text=${text}`;
     window.open(url, "_blank");
+  };
+
+  const handleViewPdf = async () => {
+    const element = document.getElementById("payroll-document");
+    if (!element) return;
+    setIsGeneratingPdf(true);
+    toast.info("Generando vista de PDF...");
+
+    try {
+      const canvas = await html2canvas(element, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        backgroundColor: "#ffffff",
+      });
+
+      const imgData = canvas.toDataURL("image/png");
+      const pdf = new jsPDF("p", "mm", "a4");
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+
+      pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
+      const blob = pdf.output("blob");
+      const url = URL.createObjectURL(blob);
+      window.open(url, "_blank");
+      toast.success("Vista de PDF abierta en nueva pestaña");
+    } catch (error) {
+      console.error("Error al visualizar PDF:", error);
+      toast.error("Error al generar la vista del PDF");
+    } finally {
+      setIsGeneratingPdf(false);
+    }
+  };
+
+  const handleDownloadPdf = async () => {
+    const element = document.getElementById("payroll-document");
+    if (!element) return;
+    setIsGeneratingPdf(true);
+    toast.info("Generando archivo PDF...");
+
+    try {
+      const canvas = await html2canvas(element, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        backgroundColor: "#ffffff",
+      });
+
+      const imgData = canvas.toDataURL("image/png");
+      const pdf = new jsPDF("p", "mm", "a4");
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+
+      pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
+      const fileName = `Nomina_${(emp.full_name || "Empleado").replace(/\s+/g, "_")}_${monthName}_${year}.pdf`;
+      pdf.save(fileName);
+      toast.success("Nómina descargada en formato PDF");
+    } catch (error) {
+      console.error("Error al generar PDF:", error);
+      toast.error("Error al descargar el archivo PDF");
+    } finally {
+      setIsGeneratingPdf(false);
+    }
   };
 
   const handlePrint = () => {
@@ -124,27 +190,34 @@ export function PayrollDocumentModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[92vh] overflow-y-auto p-4 sm:p-6 print:p-0 print:max-w-none print:shadow-none">
+      <DialogContent className="max-w-4xl max-h-[92vh] overflow-y-auto p-4 sm:p-6 print:p-0 print:max-w-none print:shadow-none print:bg-transparent">
         <DialogHeader className="print:hidden">
-          <DialogTitle className="flex items-center justify-between">
-            <span>Nómina Profesional - {emp.full_name || "Empleado"}</span>
-            <div className="flex gap-2">
-              <Button size="sm" variant="outline" onClick={handleWhatsAppShare} className="text-emerald-600 border-emerald-500/30 hover:bg-emerald-50">
-                <Share2 className="mr-1.5 size-4" /> Enviar WhatsApp
+          <DialogTitle className="flex flex-wrap items-center justify-between gap-2">
+            <span>Nómina - {emp.full_name || "Empleado"}</span>
+            <div className="flex flex-wrap gap-2">
+              <Button size="sm" variant="outline" onClick={handleViewPdf} disabled={isGeneratingPdf} className="text-violet-600 border-violet-500/30 hover:bg-violet-50">
+                <Eye className="mr-1.5 size-4" /> Ver PDF
+              </Button>
+              <Button size="sm" variant="outline" onClick={handleDownloadPdf} disabled={isGeneratingPdf} className="text-blue-600 border-blue-500/30 hover:bg-blue-50">
+                <Download className="mr-1.5 size-4" /> {isGeneratingPdf ? "Generando..." : "Descargar PDF"}
               </Button>
               <Button size="sm" variant="outline" onClick={handlePrint}>
-                <Printer className="mr-1.5 size-4" /> Imprimir / PDF
+                <Printer className="mr-1.5 size-4" /> Imprimir
+              </Button>
+              <Button size="sm" variant="outline" onClick={handleWhatsAppShare} className="text-emerald-600 border-emerald-500/30 hover:bg-emerald-50">
+                <Share2 className="mr-1.5 size-4" /> WhatsApp
               </Button>
             </div>
           </DialogTitle>
         </DialogHeader>
 
-        {/* Printable Payroll Container */}
-        <div id="payroll-document" className="bg-white text-slate-800 p-6 rounded-lg shadow-sm border border-slate-200 print:border-none print:shadow-none space-y-6">
+
+        {/* Printable Payroll Container (Renders 100% identically for Screen, Print, and PDF) */}
+        <div id="payroll-document" className="bg-white text-slate-800 p-6 rounded-lg shadow-sm border border-slate-200 print:border-none print:shadow-none space-y-6 print:w-full print:m-0">
           
           {/* 1. Header Banner */}
-          <div className="bg-[#1e3246] text-white p-6 rounded-t-md relative flex flex-col md:flex-row items-center justify-between gap-4">
-            <div className="text-center md:text-left space-y-1">
+          <div className="bg-[#1e3246] text-white p-6 rounded-t-md relative flex flex-row items-center justify-between gap-4">
+            <div className="text-left space-y-1">
               <h2 className="text-2xl font-bold tracking-wider uppercase">
                 PAGOS DE {monthName} {year}
               </h2>
@@ -156,14 +229,14 @@ export function PayrollDocumentModal({
               </p>
             </div>
 
-            {/* Top Right Stamp/Logo */}
-            <div className="bg-white/10 p-2 rounded border border-white/20 flex items-center justify-center min-w-[100px] min-h-[60px]">
-              {company.stampUrl ? (
-                <img src={company.stampUrl} alt="Logo" className="h-14 object-contain max-w-[120px]" />
+            {/* Top Right: COMPANY LOGO (logoUrl) */}
+            <div className="bg-white/10 p-2 rounded border border-white/20 flex items-center justify-center min-w-[120px] min-h-[60px]">
+              {company.logoUrl ? (
+                <img src={company.logoUrl} alt="Logo Empresa" className="h-14 object-contain max-w-[140px]" />
               ) : (
                 <div className="text-center p-1">
-                  <div className="text-xs font-bold text-amber-400">GRIFOLL</div>
-                  <div className="text-[10px] text-slate-300">NEUMACAR</div>
+                  <div className="text-xs font-bold text-amber-400">NEUMACAR</div>
+                  <div className="text-[10px] text-slate-300">MOTORS</div>
                 </div>
               )}
             </div>
@@ -207,25 +280,25 @@ export function PayrollDocumentModal({
 
           {/* 3. 4 Colored KPI Summary Cards */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            {/* Card 1: Sub-total (Green) */}
+            {/* Card 1: Sub-total (Green Accent) */}
             <div className="bg-slate-50 p-4 rounded-md border-l-4 border-emerald-500 shadow-xs">
               <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">SUB-TOTAL</p>
               <p className="text-lg font-bold text-slate-800 mt-1">{formatEuro(subtotal)}</p>
             </div>
 
-            {/* Card 2: Anticipos / Descuentos (Orange) */}
+            {/* Card 2: Anticipos / Descuentos (Orange Accent) */}
             <div className="bg-slate-50 p-4 rounded-md border-l-4 border-amber-500 shadow-xs">
               <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">ANTICIPOS / DESCUENTOS</p>
               <p className="text-lg font-bold text-slate-800 mt-1">{formatEuro(totalDiscounts)}</p>
             </div>
 
-            {/* Card 3: Gastos / Trabajos Extras (Purple) */}
+            {/* Card 3: Gastos / Trabajos Extras (Purple Accent) */}
             <div className="bg-slate-50 p-4 rounded-md border-l-4 border-violet-500 shadow-xs">
               <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">GASTOS / EXTRAS</p>
               <p className="text-lg font-bold text-slate-800 mt-1">{formatEuro(totalExtras)}</p>
             </div>
 
-            {/* Card 4: Total a Pagar (Blue) */}
+            {/* Card 4: Total a Pagar (Blue Accent) */}
             <div className="bg-slate-50 p-4 rounded-md border-l-4 border-sky-500 shadow-xs">
               <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">TOTAL A PAGAR</p>
               <p className="text-lg font-bold text-slate-900 mt-1">{formatEuro(totalToPay)}</p>
@@ -297,12 +370,12 @@ export function PayrollDocumentModal({
           </div>
 
           {/* 5. Signatures Block */}
-          <div className="pt-6 grid grid-cols-1 md:grid-cols-2 gap-8 border-t border-slate-200">
-            {/* Left: Firma de la Empresa */}
+          <div className="pt-6 grid grid-cols-2 gap-8 border-t border-slate-200">
+            {/* Left: FIRMA Y SELLO DE LA EMPRESA (stampUrl) */}
             <div className="flex flex-col items-center justify-end text-center space-y-2">
               <div className="min-h-[100px] flex items-center justify-center">
                 {company.stampUrl ? (
-                  <img src={company.stampUrl} alt="Sello Empresa" className="max-h-24 object-contain" />
+                  <img src={company.stampUrl} alt="Sello y Firma Empresa" className="max-h-24 object-contain" />
                 ) : (
                   <div className="border-2 border-blue-800 rounded p-2 text-blue-900 font-bold text-xs leading-snug">
                     <p className="text-sm font-extrabold">{company.name}</p>
@@ -318,7 +391,7 @@ export function PayrollDocumentModal({
               </div>
             </div>
 
-            {/* Right: Firma del Trabajador */}
+            {/* Right: FIRMA DEL TRABAJADOR (workerSignature) */}
             <div className="flex flex-col items-center justify-end text-center space-y-2">
               <div className="min-h-[100px] w-full flex items-center justify-center">
                 {workerSignature ? (

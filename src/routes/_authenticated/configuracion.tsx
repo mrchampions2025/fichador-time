@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { SignatureCanvas } from "@/components/SignatureCanvas";
 import { getCompanySettings, saveCompanySettings, CompanySettings } from "@/lib/company.settings";
-import { Building2, Save, Upload, Stamp } from "lucide-react";
+import { Building2, Save, Upload, Stamp, Image as ImageIcon } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/configuracion")({
@@ -34,11 +34,34 @@ function ConfiguracionPage() {
     const reader = new FileReader();
     reader.onload = (evt) => {
       const result = evt.target?.result as string;
-      setSettings((prev) => ({ ...prev, [field]: result }));
-      toast.success(field === "stampUrl" ? "Sello de empresa cargado" : "Logo cargado");
+      setSettings((prev) => {
+        const updated = { ...prev, [field]: result };
+        saveCompanySettings(updated);
+        return updated;
+      });
+      toast.success(field === "stampUrl" ? "Sello de empresa guardado" : "Logo de empresa guardado");
     };
     reader.readAsDataURL(file);
   };
+
+  const handleRemoveLogo = () => {
+    setSettings((prev) => {
+      const updated = { ...prev, logoUrl: "" };
+      saveCompanySettings(updated);
+      return updated;
+    });
+    toast.success("Logo de empresa eliminado");
+  };
+
+  const handleRemoveStamp = () => {
+    setSettings((prev) => {
+      const updated = { ...prev, stampUrl: "" };
+      saveCompanySettings(updated);
+      return updated;
+    });
+    toast.success("Sello de empresa eliminado");
+  };
+
 
   return (
     <div className="space-y-6 max-w-4xl">
@@ -47,7 +70,7 @@ function ConfiguracionPage() {
           <Building2 className="size-6 text-primary" /> Configuración del Taller y Nóminas
         </h1>
         <p className="text-sm text-muted-foreground">
-          Define el sello, firma y datos fiscales de tu empresa para que aparezcan por defecto en todas las nóminas.
+          Define el logo, sello, firma y datos fiscales de tu empresa para que aparezcan por defecto en todas las nóminas.
         </p>
       </div>
 
@@ -58,7 +81,6 @@ function ConfiguracionPage() {
             <CardDescription>
               Información que encabezará los partes de trabajo y documentos de pago.
             </CardDescription>
-
           </CardHeader>
           <CardContent className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2 sm:col-span-2">
@@ -112,14 +134,56 @@ function ConfiguracionPage() {
           </CardContent>
         </Card>
 
-        {/* Company Stamp & Signature Settings */}
+        {/* 1. Logo de la Empresa Settings (Upper Right Header Box) */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Stamp className="size-5 text-primary" /> Sello y Firma de la Empresa por Defecto
+              <ImageIcon className="size-5 text-primary" /> Logo de la Empresa (Encabezado Superior Derecho)
             </CardTitle>
             <CardDescription>
-              Este sello/firma aparecerá automáticamente en el bloque &quot;Firma de la Empresa&quot; en todas las nóminas generadas.
+              Este logo aparecerá exclusivamente en la caja superior derecha de la franja azul de la nómina.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label>Subir Imagen del Logo (PNG / JPG)</Label>
+              <Input
+                type="file"
+                accept="image/*"
+                onChange={(e) => handleFileUpload(e, "logoUrl")}
+              />
+            </div>
+
+            {settings.logoUrl ? (
+              <div className="pt-2">
+                <Label className="text-xs text-muted-foreground">Vista Previa del Logo del Encabezado:</Label>
+                <div className="mt-2 border rounded-md p-3 max-w-xs flex justify-center bg-slate-900">
+                  <img src={settings.logoUrl} alt="Logo Encabezado" className="max-h-20 object-contain" />
+                </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleRemoveLogo}
+                  className="mt-2 text-xs text-red-500"
+                >
+                  Quitar Logo
+                </Button>
+              </div>
+            ) : (
+              <p className="text-xs text-muted-foreground italic">No se ha subido ningún logo. Se mostrará la caja por defecto.</p>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* 2. Company Stamp & Signature Settings (Bottom Left Box) */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Stamp className="size-5 text-primary" /> Sello y Firma de la Empresa (Bloque Inferior Izquierdo)
+            </CardTitle>
+            <CardDescription>
+              Este sello/firma aparecerá automáticamente en el bloque &quot;Firma de la Empresa&quot; al pie de todas las nóminas.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -148,8 +212,12 @@ function ConfiguracionPage() {
                 <SignatureCanvas
                   initialImage={settings.stampUrl}
                   onSave={(dataUrl) => {
-                    setSettings({ ...settings, stampUrl: dataUrl });
-                    toast.success("Firma de empresa capturada");
+                    setSettings((prev) => {
+                      const updated = { ...prev, stampUrl: dataUrl };
+                      saveCompanySettings(updated);
+                      return updated;
+                    });
+                    toast.success("Firma/Sello de empresa guardado con éxito");
                   }}
                 />
               </div>
@@ -164,13 +232,25 @@ function ConfiguracionPage() {
               </div>
             )}
 
-            {settings.stampUrl && (
+            {settings.stampUrl ? (
               <div className="pt-3">
-                <Label className="text-xs text-muted-foreground">Vista Previa del Sello Actual:</Label>
+                <Label className="text-xs text-muted-foreground">Vista Previa del Sello / Firma de Empresa:</Label>
                 <div className="mt-2 border rounded-md p-3 max-w-xs flex justify-center bg-slate-50">
                   <img src={settings.stampUrl} alt="Vista Previa Sello" className="max-h-24 object-contain" />
                 </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleRemoveStamp}
+                  className="mt-2 text-xs text-red-500"
+                >
+                  Quitar Sello
+                </Button>
+
               </div>
+            ) : (
+              <p className="text-xs text-muted-foreground italic">No se ha asignado sello. Se utilizará el sello con texto por defecto.</p>
             )}
           </CardContent>
         </Card>
@@ -184,3 +264,4 @@ function ConfiguracionPage() {
     </div>
   );
 }
+
