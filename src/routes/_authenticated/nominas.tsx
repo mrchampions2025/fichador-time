@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AuthGate } from "@/components/AuthGate";
 import { createFileRoute } from "@tanstack/react-router";
-import { Calculator, Download, Printer } from "lucide-react";
+import { Calculator, Download, Printer, FileText, Share2, FileSignature } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -16,7 +16,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { formatEuro, formatHours, MONTHS_ES } from "@/lib/hours";
-import { generatePayrolls, listPayrolls, setPayrollStatus } from "@/lib/workforce.functions";
+import {
+  generatePayrolls,
+  listPayrolls,
+  setPayrollStatus,
+  savePayrollSignature,
+  savePayrollAdjustments,
+} from "@/lib/workforce.functions";
+import { PayrollDocumentModal } from "@/components/PayrollDocumentModal";
 
 export const Route = createFileRoute("/_authenticated/nominas")({
   component: () => (
@@ -34,6 +41,9 @@ function NominasPage() {
   const today = new Date();
   const [year, setYear] = useState(today.getFullYear());
   const [month, setMonth] = useState(today.getMonth() + 1);
+
+  const [selectedPayroll, setSelectedPayroll] = useState<any>(null);
+  const [documentOpen, setDocumentOpen] = useState(false);
 
   const payrolls = useQuery({
     queryKey: ["payrolls", year, month],
@@ -55,6 +65,15 @@ function NominasPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const handleSaveSignature = async (payrollId: string, signatureDataUrl: string) => {
+    await savePayrollSignature({ payrollId, signatureDataUrl });
+    qc.invalidateQueries({ queryKey: ["payrolls", year, month] });
+  };
+
+  const handleSaveAdjustments = async (payrollId: string, adjustments: any[], total: number) => {
+    await savePayrollAdjustments({ payrollId, adjustments, total });
+    qc.invalidateQueries({ queryKey: ["payrolls", year, month] });
+  };
 
   const rows = payrolls.data ?? [];
   const total = rows.reduce((a: number, r: any) => a + Number(r.total), 0);
@@ -147,7 +166,14 @@ function NominasPage() {
                     {r.employees?.position} · {MONTHS_ES[month - 1]} {year}
                   </p>
                 </div>
-                <Badge variant={r.status === "pagada" ? "default" : "secondary"}>{r.status}</Badge>
+                <div className="flex items-center gap-1.5">
+                  {r.worker_signature && (
+                    <Badge variant="outline" className="text-[10px] bg-blue-500/10 text-blue-600 border-blue-500/20">
+                      Firmada
+                    </Badge>
+                  )}
+                  <Badge variant={r.status === "pagada" ? "default" : "secondary"}>{r.status}</Badge>
+                </div>
               </div>
               <dl className="space-y-1 text-sm">
                 <Line label="Horas normales" value={formatHours(Number(r.normal_hours))} />
@@ -161,7 +187,17 @@ function NominasPage() {
                   </dd>
                 </div>
               </dl>
-              <div className="flex gap-2 print:hidden">
+              <div className="flex flex-wrap gap-2 pt-1 print:hidden">
+                <Button
+                  size="sm"
+                  variant="default"
+                  onClick={() => {
+                    setSelectedPayroll(r);
+                    setDocumentOpen(true);
+                  }}
+                >
+                  <FileSignature className="mr-1.5 size-4" /> Ver / Firmar Nómina
+                </Button>
                 {STATUS.filter((s) => s !== r.status).map((s) => (
                   <Button
                     key={s}
@@ -169,7 +205,7 @@ function NominasPage() {
                     variant="outline"
                     onClick={() => changeStatus.mutate({ id: r.id, status: s })}
                   >
-                    Marcar {s}
+                    {s}
                   </Button>
                 ))}
               </div>
@@ -182,6 +218,16 @@ function NominasPage() {
         <p className="text-right text-sm font-semibold text-foreground">
           Coste total del mes: {formatEuro(total)}
         </p>
+      )}
+
+      {selectedPayroll && (
+        <PayrollDocumentModal
+          open={documentOpen}
+          onOpenChange={setDocumentOpen}
+          payroll={selectedPayroll}
+          onSaveSignature={handleSaveSignature}
+          onSaveAdjustments={handleSaveAdjustments}
+        />
       )}
     </div>
   );
@@ -197,3 +243,4 @@ function Line({ label, value, accent }: { label: string; value: string; accent?:
     </div>
   );
 }
+

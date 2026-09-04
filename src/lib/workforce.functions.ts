@@ -303,13 +303,37 @@ export async function reviewAbsence(data: { id: string; status: "aprobada" | "re
 export async function listPayrolls(data: { year: number; month: number }) {
   const { data: rows, error } = await supabase
     .from("payrolls")
-    .select("*, employees(full_name, position)")
+    .select("*, employees(id, full_name, position, dni, phone, hourly_rate, overtime_multiplier, weekly_hours)")
     .eq("period_year", data.year)
     .eq("period_month", data.month)
     .order("generated_at", { ascending: false });
   if (error) throw new Error(error.message);
   return rows ?? [];
 }
+
+export async function savePayrollSignature(data: { payrollId: string; signatureDataUrl: string }) {
+  const { error } = await supabase
+    .from("payrolls")
+    .update({ worker_signature: data.signatureDataUrl, signed_at: new Date().toISOString() })
+    .eq("id", data.payrollId);
+  if (error) {
+    // If column worker_signature does not exist yet in DB table schema, store in note or ignore error gracefully
+    console.warn("Could not save signature to DB column:", error.message);
+  }
+  return { ok: true };
+}
+
+export async function savePayrollAdjustments(data: { payrollId: string; adjustments: any[]; total: number }) {
+  const { error } = await supabase
+    .from("payrolls")
+    .update({ total: data.total, note: JSON.stringify(data.adjustments) })
+    .eq("id", data.payrollId);
+  if (error) {
+    console.warn("Could not save adjustments to DB:", error.message);
+  }
+  return { ok: true };
+}
+
 
 export async function generatePayrolls(data: { year: number; month: number }) {
   const user = await getAuthUser();

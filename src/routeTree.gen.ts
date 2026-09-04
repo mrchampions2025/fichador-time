@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedAusenciasRouteImport } from './routes/_authenticated/ausencias'
+import { Route as AuthenticatedConfiguracionRouteImport } from './routes/_authenticated/configuracion'
 import { Route as AuthenticatedEmpleadosRouteImport } from './routes/_authenticated/empleados'
 import { Route as AuthenticatedFichajesRouteImport } from './routes/_authenticated/fichajes'
 import { Route as AuthenticatedFicharRouteImport } from './routes/_authenticated/fichar'
@@ -33,6 +34,12 @@ const AuthenticatedAusenciasRoute = AuthenticatedAusenciasRouteImport.update({
   path: '/ausencias',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedConfiguracionRoute =
+  AuthenticatedConfiguracionRouteImport.update({
+    id: '/_authenticated/configuracion',
+    path: '/configuracion',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const AuthenticatedEmpleadosRoute = AuthenticatedEmpleadosRouteImport.update({
   id: '/_authenticated/empleados',
   path: '/empleados',
@@ -63,6 +70,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/ausencias': typeof AuthenticatedAusenciasRoute
+  '/configuracion': typeof AuthenticatedConfiguracionRoute
   '/empleados': typeof AuthenticatedEmpleadosRoute
   '/fichajes': typeof AuthenticatedFichajesRoute
   '/fichar': typeof AuthenticatedFicharRoute
@@ -73,6 +81,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/ausencias': typeof AuthenticatedAusenciasRoute
+  '/configuracion': typeof AuthenticatedConfiguracionRoute
   '/empleados': typeof AuthenticatedEmpleadosRoute
   '/fichajes': typeof AuthenticatedFichajesRoute
   '/fichar': typeof AuthenticatedFicharRoute
@@ -84,6 +93,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/_authenticated/ausencias': typeof AuthenticatedAusenciasRoute
+  '/_authenticated/configuracion': typeof AuthenticatedConfiguracionRoute
   '/_authenticated/empleados': typeof AuthenticatedEmpleadosRoute
   '/_authenticated/fichajes': typeof AuthenticatedFichajesRoute
   '/_authenticated/fichar': typeof AuthenticatedFicharRoute
@@ -96,6 +106,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/ausencias'
+    | '/configuracion'
     | '/empleados'
     | '/fichajes'
     | '/fichar'
@@ -106,6 +117,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/ausencias'
+    | '/configuracion'
     | '/empleados'
     | '/fichajes'
     | '/fichar'
@@ -116,6 +128,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/_authenticated/ausencias'
+    | '/_authenticated/configuracion'
     | '/_authenticated/empleados'
     | '/_authenticated/fichajes'
     | '/_authenticated/fichar'
@@ -127,6 +140,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthRoute: typeof AuthRoute
   AuthenticatedAusenciasRoute: typeof AuthenticatedAusenciasRoute
+  AuthenticatedConfiguracionRoute: typeof AuthenticatedConfiguracionRoute
   AuthenticatedEmpleadosRoute: typeof AuthenticatedEmpleadosRoute
   AuthenticatedFichajesRoute: typeof AuthenticatedFichajesRoute
   AuthenticatedFicharRoute: typeof AuthenticatedFicharRoute
@@ -155,6 +169,13 @@ declare module '@tanstack/react-router' {
       path: '/ausencias'
       fullPath: '/ausencias'
       preLoaderRoute: typeof AuthenticatedAusenciasRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/configuracion': {
+      id: '/_authenticated/configuracion'
+      path: '/configuracion'
+      fullPath: '/configuracion'
+      preLoaderRoute: typeof AuthenticatedConfiguracionRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/empleados': {
@@ -199,6 +220,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthRoute: AuthRoute,
   AuthenticatedAusenciasRoute: AuthenticatedAusenciasRoute,
+  AuthenticatedConfiguracionRoute: AuthenticatedConfiguracionRoute,
   AuthenticatedEmpleadosRoute: AuthenticatedEmpleadosRoute,
   AuthenticatedFichajesRoute: AuthenticatedFichajesRoute,
   AuthenticatedFicharRoute: AuthenticatedFicharRoute,

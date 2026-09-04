@@ -8,6 +8,7 @@ import {
   Menu,
   Users,
   Wrench,
+  Settings,
 } from "lucide-react";
 import { useState, type ReactNode } from "react";
 
@@ -24,7 +25,9 @@ const NAV: NavItem[] = [
   { to: "/empleados", label: "Empleados", icon: Users, staffOnly: true },
   { to: "/nominas", label: "Nóminas", icon: FileSpreadsheet, staffOnly: true },
   { to: "/ausencias", label: "Ausencias", icon: CalendarDays },
+  { to: "/configuracion", label: "Configuración", icon: Settings, staffOnly: true },
 ];
+
 
 export function AppShell({
   children,
