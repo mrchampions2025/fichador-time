@@ -156,9 +156,13 @@ export function PayrollDocumentModal({
   };
 
   const handleDownloadPdf = async () => {
+    toast.info("Iniciando descarga PDF...");
     setIsGeneratingPdf(true);
-    await downloadPayrollDocumentPdf("payroll-document", fileName);
-    setIsGeneratingPdf(false);
+    try {
+      await downloadPayrollDocumentPdf("payroll-document", fileName);
+    } finally {
+      setIsGeneratingPdf(false);
+    }
   };
 
   const handlePrint = () => {
