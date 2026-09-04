@@ -149,11 +149,7 @@ export function PayrollDocumentModal({
     window.open(url, "_blank");
   };
 
-  const handleViewPdf = async () => {
-    setIsGeneratingPdf(true);
-    await viewPayrollDocumentPdf("payroll-document");
-    setIsGeneratingPdf(false);
-  };
+
 
   const handleDownloadPdf = async () => {
     console.log("Downloading PDF with fileName:", fileName);
@@ -180,9 +176,7 @@ export function PayrollDocumentModal({
           <DialogTitle className="flex flex-wrap items-center justify-between gap-2">
             <span>Nómina - {emp.full_name || "Empleado"}</span>
             <div className="flex flex-wrap gap-2">
-              <Button size="sm" variant="outline" onClick={handleViewPdf} disabled={isGeneratingPdf} className="text-violet-600 border-violet-500/30 hover:bg-violet-50">
-                <Eye className="mr-1.5 size-4" /> Ver PDF
-              </Button>
+
               <Button size="sm" variant="outline" onClick={handleDownloadPdf} disabled={isGeneratingPdf} className="text-blue-600 border-blue-500/30 hover:bg-blue-50">
                 <Download className="mr-1.5 size-4" /> {isGeneratingPdf ? "Generando..." : "Descargar PDF"}
               </Button>

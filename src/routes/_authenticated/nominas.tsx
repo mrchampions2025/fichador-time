@@ -202,18 +202,7 @@ function NominasPage() {
                 >
                   <FileSignature className="mr-1.5 size-4" /> Ver / Firmar Nómina
                 </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="text-violet-600 border-violet-500/30 hover:bg-violet-50"
-                  onClick={() => {
-                    setSelectedPayroll(r);
-                    setAutoAction("view");
-                    setDocumentOpen(true);
-                  }}
-                >
-                  <Eye className="mr-1.5 size-4" /> Ver PDF
-                </Button>
+
                 <Button
                   size="sm"
                   variant="outline"
