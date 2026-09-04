@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as AuthenticatedAusenciasRouteImport } from './routes/_authenticated/ausencias'
 import { Route as AuthenticatedEmpleadosRouteImport } from './routes/_authenticated/empleados'
 import { Route as AuthenticatedFichajesRouteImport } from './routes/_authenticated/fichajes'
 import { Route as AuthenticatedFicharRouteImport } from './routes/_authenticated/fichar'
@@ -31,6 +32,11 @@ const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedAusenciasRoute = AuthenticatedAusenciasRouteImport.update({
+  id: '/ausencias',
+  path: '/ausencias',
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedEmpleadosRoute = AuthenticatedEmpleadosRouteImport.update({
   id: '/empleados',
@@ -61,6 +67,7 @@ const AuthenticatedPanelRoute = AuthenticatedPanelRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/ausencias': typeof AuthenticatedAusenciasRoute
   '/empleados': typeof AuthenticatedEmpleadosRoute
   '/fichajes': typeof AuthenticatedFichajesRoute
   '/fichar': typeof AuthenticatedFicharRoute
@@ -70,6 +77,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/ausencias': typeof AuthenticatedAusenciasRoute
   '/empleados': typeof AuthenticatedEmpleadosRoute
   '/fichajes': typeof AuthenticatedFichajesRoute
   '/fichar': typeof AuthenticatedFicharRoute
@@ -81,6 +89,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
+  '/_authenticated/ausencias': typeof AuthenticatedAusenciasRoute
   '/_authenticated/empleados': typeof AuthenticatedEmpleadosRoute
   '/_authenticated/fichajes': typeof AuthenticatedFichajesRoute
   '/_authenticated/fichar': typeof AuthenticatedFicharRoute
@@ -92,6 +101,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/auth'
+    | '/ausencias'
     | '/empleados'
     | '/fichajes'
     | '/fichar'
@@ -101,6 +111,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/auth'
+    | '/ausencias'
     | '/empleados'
     | '/fichajes'
     | '/fichar'
@@ -111,6 +122,7 @@ export interface FileRouteTypes {
     | '/'
     | '/_authenticated'
     | '/auth'
+    | '/_authenticated/ausencias'
     | '/_authenticated/empleados'
     | '/_authenticated/fichajes'
     | '/_authenticated/fichar'
@@ -146,6 +158,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/auth'
       preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/ausencias': {
+      id: '/_authenticated/ausencias'
+      path: '/ausencias'
+      fullPath: '/ausencias'
+      preLoaderRoute: typeof AuthenticatedAusenciasRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/empleados': {
       id: '/_authenticated/empleados'
@@ -186,6 +205,7 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthenticatedRouteRouteChildren {
+  AuthenticatedAusenciasRoute: typeof AuthenticatedAusenciasRoute
   AuthenticatedEmpleadosRoute: typeof AuthenticatedEmpleadosRoute
   AuthenticatedFichajesRoute: typeof AuthenticatedFichajesRoute
   AuthenticatedFicharRoute: typeof AuthenticatedFicharRoute
@@ -194,6 +214,7 @@ interface AuthenticatedRouteRouteChildren {
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedAusenciasRoute: AuthenticatedAusenciasRoute,
   AuthenticatedEmpleadosRoute: AuthenticatedEmpleadosRoute,
   AuthenticatedFichajesRoute: AuthenticatedFichajesRoute,
   AuthenticatedFicharRoute: AuthenticatedFicharRoute,
