@@ -5,13 +5,13 @@ import { getRouter } from "./router";
 import "./styles.css";
 
 const router = getRouter();
-const rootElement = document.getElementById("root")!;
+const rootElement = document.getElementById("root");
 
-if (!rootElement.innerHTML) {
-  const root = createRoot(rootElement);
-  root.render(
+if (rootElement) {
+  createRoot(rootElement).render(
     <StrictMode>
       <RouterProvider router={router} />
     </StrictMode>
   );
 }
+

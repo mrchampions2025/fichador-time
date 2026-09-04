@@ -26,6 +26,9 @@ function createSupabaseFetch(supabaseKey: string): typeof fetch {
 }
 
 
+const DEFAULT_SUPABASE_URL = "https://vprixytfssnbdvbaqrlr.supabase.co";
+const DEFAULT_SUPABASE_KEY = "sb_publishable_zZSh4oWMKQgIsyMorKzVMA_7pMcYyCF";
+
 function createSupabaseClient() {
   const env = import.meta.env || {};
   const procEnv = (typeof process !== 'undefined' && process.env) || {};
@@ -36,27 +39,22 @@ function createSupabaseClient() {
     env['SUPABASE_URL'] ||
     procEnv['VITE_SUPABASE_URL'] ||
     procEnv['SUPABASE_URL'] ||
-    procEnv['NEXT_PUBLIC_SUPABASE_URL'];
+    procEnv['NEXT_PUBLIC_SUPABASE_URL'] ||
+    DEFAULT_SUPABASE_URL;
 
   const SUPABASE_PUBLISHABLE_KEY =
     env['VITE_SUPABASE_PUBLISHABLE_KEY'] ||
+    env['VITE_SUPABASE_ANON_KEY'] ||
     env['NEXT_PUBLIC_SUPABASE_ANON_KEY'] ||
     env['SUPABASE_ANON_KEY'] ||
     env['SUPABASE_PUBLISHABLE_KEY'] ||
     procEnv['VITE_SUPABASE_PUBLISHABLE_KEY'] ||
+    procEnv['VITE_SUPABASE_ANON_KEY'] ||
     procEnv['SUPABASE_PUBLISHABLE_KEY'] ||
     procEnv['SUPABASE_ANON_KEY'] ||
-    procEnv['NEXT_PUBLIC_SUPABASE_ANON_KEY'];
+    procEnv['NEXT_PUBLIC_SUPABASE_ANON_KEY'] ||
+    DEFAULT_SUPABASE_KEY;
 
-  if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
-    const missing = [
-      ...(!SUPABASE_URL ? ['VITE_SUPABASE_URL / SUPABASE_URL'] : []),
-      ...(!SUPABASE_PUBLISHABLE_KEY ? ['VITE_SUPABASE_PUBLISHABLE_KEY / SUPABASE_PUBLISHABLE_KEY'] : []),
-    ];
-    const message = `Faltan variables de entorno de Supabase: ${missing.join(', ')}. Por favor, configúralas en tu archivo .env o en Vercel.`;
-    console.error(`[Supabase] ${message}`);
-    throw new Error(message);
-  }
 
   return createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
     global: {
