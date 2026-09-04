@@ -13,8 +13,7 @@ import { formatEuro, MONTHS_ES } from "@/lib/hours";
 import { getCompanySettings } from "@/lib/company.settings";
 import { Printer, Share2, Download, Plus, Trash2, Eye } from "lucide-react";
 import { toast } from "sonner";
-import html2canvas from "html2canvas";
-import jsPDF from "jspdf";
+import { viewPayrollDocumentPdf, downloadPayrollDocumentPdf, printPayrollDocument } from "@/lib/pdf.utils";
 
 export type AdjustmentItem = {
   id: string;
@@ -27,6 +26,7 @@ interface PayrollDocumentModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   payroll: any;
+  autoAction?: "view" | "download" | null;
   onSaveSignature?: (payrollId: string, signatureDataUrl: string) => void;
   onSaveAdjustments?: (payrollId: string, adjustments: AdjustmentItem[], total: number) => void;
 }
@@ -35,6 +35,7 @@ export function PayrollDocumentModal({
   open,
   onOpenChange,
   payroll,
+  autoAction,
   onSaveSignature,
   onSaveAdjustments,
 }: PayrollDocumentModalProps) {
@@ -58,6 +59,22 @@ export function PayrollDocumentModal({
   const emp = payroll.employees || {};
   const monthName = MONTHS_ES[(payroll.period_month || 1) - 1] || "Periodo";
   const year = payroll.period_year || new Date().getFullYear();
+  const fileName = `Nomina_${(emp.full_name || "Empleado").replace(/\s+/g, "_")}_${monthName}_${year}.pdf`;
+
+  React.useEffect(() => {
+    if (open && autoAction) {
+      const timer = setTimeout(async () => {
+        setIsGeneratingPdf(true);
+        if (autoAction === "view") {
+          await viewPayrollDocumentPdf("payroll-document");
+        } else if (autoAction === "download") {
+          await downloadPayrollDocumentPdf("payroll-document", fileName);
+        }
+        setIsGeneratingPdf(false);
+      }, 400);
+      return () => clearTimeout(timer);
+    }
+  }, [open, autoAction]);
 
   const baseAmount = Number(payroll.base_amount || 0);
   const overtimeAmount = Number(payroll.overtime_amount || 0);
@@ -122,71 +139,21 @@ export function PayrollDocumentModal({
   };
 
   const handleViewPdf = async () => {
-    const element = document.getElementById("payroll-document");
-    if (!element) return;
     setIsGeneratingPdf(true);
-    toast.info("Generando vista de PDF...");
-
-    try {
-      const canvas = await html2canvas(element, {
-        scale: 2,
-        useCORS: true,
-        logging: false,
-        backgroundColor: "#ffffff",
-      });
-
-      const imgData = canvas.toDataURL("image/png");
-      const pdf = new jsPDF("p", "mm", "a4");
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-
-      pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
-      const blob = pdf.output("blob");
-      const url = URL.createObjectURL(blob);
-      window.open(url, "_blank");
-      toast.success("Vista de PDF abierta en nueva pestaña");
-    } catch (error) {
-      console.error("Error al visualizar PDF:", error);
-      toast.error("Error al generar la vista del PDF");
-    } finally {
-      setIsGeneratingPdf(false);
-    }
+    await viewPayrollDocumentPdf("payroll-document");
+    setIsGeneratingPdf(false);
   };
 
   const handleDownloadPdf = async () => {
-    const element = document.getElementById("payroll-document");
-    if (!element) return;
     setIsGeneratingPdf(true);
-    toast.info("Generando archivo PDF...");
-
-    try {
-      const canvas = await html2canvas(element, {
-        scale: 2,
-        useCORS: true,
-        logging: false,
-        backgroundColor: "#ffffff",
-      });
-
-      const imgData = canvas.toDataURL("image/png");
-      const pdf = new jsPDF("p", "mm", "a4");
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-
-      pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
-      const fileName = `Nomina_${(emp.full_name || "Empleado").replace(/\s+/g, "_")}_${monthName}_${year}.pdf`;
-      pdf.save(fileName);
-      toast.success("Nómina descargada en formato PDF");
-    } catch (error) {
-      console.error("Error al generar PDF:", error);
-      toast.error("Error al descargar el archivo PDF");
-    } finally {
-      setIsGeneratingPdf(false);
-    }
+    await downloadPayrollDocumentPdf("payroll-document", fileName);
+    setIsGeneratingPdf(false);
   };
 
   const handlePrint = () => {
-    window.print();
+    printPayrollDocument("payroll-document");
   };
+
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

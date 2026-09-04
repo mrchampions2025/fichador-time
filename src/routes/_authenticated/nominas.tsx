@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AuthGate } from "@/components/AuthGate";
 import { createFileRoute } from "@tanstack/react-router";
-import { Calculator, Download, Printer, FileText, Share2, FileSignature } from "lucide-react";
+import { Calculator, Download, Printer, FileText, Share2, FileSignature, Eye } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -24,6 +24,7 @@ import {
   savePayrollAdjustments,
 } from "@/lib/workforce.functions";
 import { PayrollDocumentModal } from "@/components/PayrollDocumentModal";
+import { printPayrollDocument } from "@/lib/pdf.utils";
 
 export const Route = createFileRoute("/_authenticated/nominas")({
   component: () => (
@@ -43,7 +44,9 @@ function NominasPage() {
   const [month, setMonth] = useState(today.getMonth() + 1);
 
   const [selectedPayroll, setSelectedPayroll] = useState<any>(null);
+  const [autoAction, setAutoAction] = useState<"view" | "download" | null>(null);
   const [documentOpen, setDocumentOpen] = useState(false);
+
 
   const payrolls = useQuery({
     queryKey: ["payrolls", year, month],
@@ -193,10 +196,35 @@ function NominasPage() {
                   variant="default"
                   onClick={() => {
                     setSelectedPayroll(r);
+                    setAutoAction(null);
                     setDocumentOpen(true);
                   }}
                 >
                   <FileSignature className="mr-1.5 size-4" /> Ver / Firmar Nómina
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="text-violet-600 border-violet-500/30 hover:bg-violet-50"
+                  onClick={() => {
+                    setSelectedPayroll(r);
+                    setAutoAction("view");
+                    setDocumentOpen(true);
+                  }}
+                >
+                  <Eye className="mr-1.5 size-4" /> Ver PDF
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="text-blue-600 border-blue-500/30 hover:bg-blue-50"
+                  onClick={() => {
+                    setSelectedPayroll(r);
+                    setAutoAction("download");
+                    setDocumentOpen(true);
+                  }}
+                >
+                  <Download className="mr-1.5 size-4" /> Descargar PDF
                 </Button>
                 {STATUS.filter((s) => s !== r.status).map((s) => (
                   <Button
@@ -225,10 +253,12 @@ function NominasPage() {
           open={documentOpen}
           onOpenChange={setDocumentOpen}
           payroll={selectedPayroll}
+          autoAction={autoAction}
           onSaveSignature={handleSaveSignature}
           onSaveAdjustments={handleSaveAdjustments}
         />
       )}
+
     </div>
   );
 }
