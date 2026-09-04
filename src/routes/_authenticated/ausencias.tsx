@@ -1,7 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AuthGate } from "@/components/AuthGate";
 import { createFileRoute } from "@tanstack/react-router";
-import { useServerFn } from "@tanstack/react-start";
 import { Check, Plus, X } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -30,24 +29,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { createAbsence, getMe, listAbsences, reviewAbsence } from "@/lib/workforce.functions";
 
 export const Route = createFileRoute("/_authenticated/ausencias")({
-  head: () => ({
-    meta: [
-      { title: "Vacaciones y ausencias | TallerHoras" },
-      {
-        name: "description",
-        content:
-          "Solicita vacaciones, bajas o permisos y gestiona las aprobaciones del equipo del taller.",
-      },
-      { property: "og:title", content: "Vacaciones y ausencias | TallerHoras" },
-      {
-        property: "og:description",
-        content: "Solicitudes de vacaciones, bajas y permisos con aprobación del responsable.",
-      },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary_large_image" },
-    ],
-  }),
-  ssr: false,
   component: () => (
     <AuthGate>
       <AusenciasPage />
@@ -59,10 +40,6 @@ const KINDS = ["vacaciones", "baja médica", "permiso", "asuntos propios"] as co
 
 function AusenciasPage() {
   const qc = useQueryClient();
-  const listFn = useServerFn(listAbsences);
-  const createFn = useServerFn(createAbsence);
-  const reviewFn = useServerFn(reviewAbsence);
-  const meFn = useServerFn(getMe);
 
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({
@@ -72,19 +49,17 @@ function AusenciasPage() {
     reason: "",
   });
 
-  const me = useQuery({ queryKey: ["me"], queryFn: () => meFn() });
-  const absences = useQuery({ queryKey: ["absences"], queryFn: () => listFn() });
+  const me = useQuery({ queryKey: ["me"], queryFn: () => getMe() });
+  const absences = useQuery({ queryKey: ["absences"], queryFn: () => listAbsences() });
   const isStaff = me.data?.isStaff ?? false;
 
   const create = useMutation({
     mutationFn: () =>
-      createFn({
-        data: {
-          kind: form.kind,
-          start_date: form.start_date,
-          end_date: form.end_date,
-          ...(form.reason ? { reason: form.reason } : {}),
-        },
+      createAbsence({
+        kind: form.kind,
+        start_date: form.start_date,
+        end_date: form.end_date,
+        ...(form.reason ? { reason: form.reason } : {}),
       }),
     onSuccess: () => {
       toast.success("Solicitud enviada");
@@ -95,13 +70,14 @@ function AusenciasPage() {
   });
 
   const review = useMutation({
-    mutationFn: (v: { id: string; status: "aprobada" | "rechazada" }) => reviewFn({ data: v }),
+    mutationFn: (v: { id: string; status: "aprobada" | "rechazada" }) => reviewAbsence(v),
     onSuccess: () => {
       toast.success("Solicitud actualizada");
       qc.invalidateQueries({ queryKey: ["absences"] });
     },
     onError: (e: Error) => toast.error(e.message),
   });
+
 
   const rows = absences.data ?? [];
 

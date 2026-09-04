@@ -1,7 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { AuthGate } from "@/components/AuthGate";
 import { createFileRoute } from "@tanstack/react-router";
-import { useServerFn } from "@tanstack/react-start";
 import { AlarmClock, CalendarClock, Euro, Users } from "lucide-react";
 import { useState } from "react";
 
@@ -17,24 +16,6 @@ import { formatEuro, formatHours, MONTHS_ES } from "@/lib/hours";
 import { getDashboard } from "@/lib/workforce.functions";
 
 export const Route = createFileRoute("/_authenticated/panel")({
-  head: () => ({
-    meta: [
-      { title: "Panel de control | TallerHoras" },
-      {
-        name: "description",
-        content:
-          "Indicadores en tiempo real del taller: plantilla activa, horas trabajadas, horas extras y coste laboral del mes.",
-      },
-      { property: "og:title", content: "Panel de control | TallerHoras" },
-      {
-        property: "og:description",
-        content: "Horas, horas extras y coste laboral del taller en tiempo real.",
-      },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary_large_image" },
-    ],
-  }),
-  ssr: false,
   component: () => (
     <AuthGate>
       <PanelPage />
@@ -43,15 +24,15 @@ export const Route = createFileRoute("/_authenticated/panel")({
 });
 
 function PanelPage() {
-  const dash = useServerFn(getDashboard);
   const today = new Date();
   const [year, setYear] = useState(today.getFullYear());
   const [month, setMonth] = useState(today.getMonth() + 1);
 
   const { data } = useQuery({
     queryKey: ["dashboard", year, month],
-    queryFn: () => dash({ data: { year, month } }),
+    queryFn: () => getDashboard({ year, month }),
   });
+
 
   const years = [today.getFullYear(), today.getFullYear() - 1, today.getFullYear() - 2];
 

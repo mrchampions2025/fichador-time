@@ -2,26 +2,9 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { BarChart3, Clock, FileSpreadsheet, ShieldCheck, Smartphone, Wrench } from "lucide-react";
 
 export const Route = createFileRoute("/")({
-  head: () => ({
-    meta: [
-      { title: "TallerHoras | Control horario y nóminas para talleres" },
-      {
-        name: "description",
-        content:
-          "Sustituye el fichaje en papel: fichaje digital, cálculo automático de horas extras, nóminas y control de costes laborales para tu taller mecánico.",
-      },
-      { property: "og:title", content: "TallerHoras | Control horario y nóminas para talleres" },
-      {
-        property: "og:description",
-        content:
-          "Fichaje digital, horas extras automáticas y nóminas para talleres mecánicos, desde el móvil o el ordenador.",
-      },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary_large_image" },
-    ],
-  }),
   component: Landing,
 });
+
 
 const FEATURES = [
   {

@@ -1,7 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AuthGate } from "@/components/AuthGate";
 import { createFileRoute } from "@tanstack/react-router";
-import { useServerFn } from "@tanstack/react-start";
 import { Calculator, Download, Printer } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -20,24 +19,6 @@ import { formatEuro, formatHours, MONTHS_ES } from "@/lib/hours";
 import { generatePayrolls, listPayrolls, setPayrollStatus } from "@/lib/workforce.functions";
 
 export const Route = createFileRoute("/_authenticated/nominas")({
-  head: () => ({
-    meta: [
-      { title: "Nóminas del taller | TallerHoras" },
-      {
-        name: "description",
-        content:
-          "Genera nóminas mensuales con horas normales, horas extras y coste total por empleado.",
-      },
-      { property: "og:title", content: "Nóminas del taller | TallerHoras" },
-      {
-        property: "og:description",
-        content: "Nóminas mensuales calculadas a partir de los fichajes reales.",
-      },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary_large_image" },
-    ],
-  }),
-  ssr: false,
   component: () => (
     <AuthGate>
       <NominasPage />
@@ -49,9 +30,6 @@ const STATUS = ["borrador", "aprobada", "pagada"] as const;
 
 function NominasPage() {
   const qc = useQueryClient();
-  const listFn = useServerFn(listPayrolls);
-  const genFn = useServerFn(generatePayrolls);
-  const statusFn = useServerFn(setPayrollStatus);
 
   const today = new Date();
   const [year, setYear] = useState(today.getFullYear());
@@ -59,11 +37,11 @@ function NominasPage() {
 
   const payrolls = useQuery({
     queryKey: ["payrolls", year, month],
-    queryFn: () => listFn({ data: { year, month } }),
+    queryFn: () => listPayrolls({ year, month }),
   });
 
   const generate = useMutation({
-    mutationFn: () => genFn({ data: { year, month } }),
+    mutationFn: () => generatePayrolls({ year, month }),
     onSuccess: (r) => {
       toast.success(`${r.count} nómina(s) calculada(s)`);
       qc.invalidateQueries({ queryKey: ["payrolls", year, month] });
@@ -72,10 +50,11 @@ function NominasPage() {
   });
 
   const changeStatus = useMutation({
-    mutationFn: (v: { id: string; status: string }) => statusFn({ data: v }),
+    mutationFn: (v: { id: string; status: string }) => setPayrollStatus(v),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["payrolls", year, month] }),
     onError: (e: Error) => toast.error(e.message),
   });
+
 
   const rows = payrolls.data ?? [];
   const total = rows.reduce((a: number, r: any) => a + Number(r.total), 0);

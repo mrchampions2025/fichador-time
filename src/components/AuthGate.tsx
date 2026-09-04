@@ -1,6 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "@tanstack/react-router";
-import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState, type ReactNode } from "react";
 
 import { AppShell } from "@/components/AppShell";
@@ -9,8 +8,6 @@ import { bootstrapAccount, getMe } from "@/lib/workforce.functions";
 
 export function AuthGate({ children }: { children: ReactNode }) {
   const router = useRouter();
-  const bootstrap = useServerFn(bootstrapAccount);
-  const me = useServerFn(getMe);
   const [checked, setChecked] = useState(false);
 
   useEffect(() => {
@@ -36,8 +33,8 @@ export function AuthGate({ children }: { children: ReactNode }) {
     queryKey: ["me"],
     enabled: checked,
     queryFn: async () => {
-      await bootstrap({ data: undefined as never });
-      return me();
+      await bootstrapAccount();
+      return getMe();
     },
   });
 
@@ -59,3 +56,4 @@ export function AuthGate({ children }: { children: ReactNode }) {
     </AppShell>
   );
 }
+

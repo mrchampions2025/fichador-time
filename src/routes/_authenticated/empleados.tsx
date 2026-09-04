@@ -1,7 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AuthGate } from "@/components/AuthGate";
 import { createFileRoute } from "@tanstack/react-router";
-import { useServerFn } from "@tanstack/react-start";
 import { Pencil, Plus } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -31,24 +30,6 @@ import { formatEuro } from "@/lib/hours";
 import { listEmployees, listRoles, saveEmployee, setEmployeeRole } from "@/lib/workforce.functions";
 
 export const Route = createFileRoute("/_authenticated/empleados")({
-  head: () => ({
-    meta: [
-      { title: "Plantilla del taller | TallerHoras" },
-      {
-        name: "description",
-        content:
-          "Alta y edición de empleados: puesto, precio por hora, recargo de horas extras y jornada semanal.",
-      },
-      { property: "og:title", content: "Plantilla del taller | TallerHoras" },
-      {
-        property: "og:description",
-        content: "Gestiona puestos, precios por hora y jornada de tus empleados.",
-      },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary_large_image" },
-    ],
-  }),
-  ssr: false,
   component: () => (
     <AuthGate>
       <EmpleadosPage />
@@ -86,32 +67,26 @@ const ROLES = ["gerente", "encargado", "administracion", "empleado"] as const;
 
 function EmpleadosPage() {
   const qc = useQueryClient();
-  const listFn = useServerFn(listEmployees);
-  const rolesFn = useServerFn(listRoles);
-  const saveFn = useServerFn(saveEmployee);
-  const roleFn = useServerFn(setEmployeeRole);
 
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<EmployeeForm>(EMPTY);
 
-  const employees = useQuery({ queryKey: ["employees"], queryFn: () => listFn() });
-  const roles = useQuery({ queryKey: ["roles"], queryFn: () => rolesFn() });
+  const employees = useQuery({ queryKey: ["employees"], queryFn: () => listEmployees() });
+  const roles = useQuery({ queryKey: ["roles"], queryFn: () => listRoles() });
 
   const save = useMutation({
     mutationFn: () =>
-      saveFn({
-        data: {
-          ...(form.id ? { id: form.id } : {}),
-          full_name: form.full_name,
-          dni: form.dni || null,
-          email: form.email || null,
-          phone: form.phone || null,
-          position: form.position,
-          hourly_rate: Number(form.hourly_rate),
-          overtime_multiplier: Number(form.overtime_multiplier),
-          weekly_hours: Number(form.weekly_hours),
-          active: form.active,
-        },
+      saveEmployee({
+        ...(form.id ? { id: form.id } : {}),
+        full_name: form.full_name,
+        dni: form.dni || null,
+        email: form.email || null,
+        phone: form.phone || null,
+        position: form.position,
+        hourly_rate: Number(form.hourly_rate),
+        overtime_multiplier: Number(form.overtime_multiplier),
+        weekly_hours: Number(form.weekly_hours),
+        active: form.active,
       }),
     onSuccess: () => {
       toast.success("Empleado guardado");
@@ -122,13 +97,14 @@ function EmpleadosPage() {
   });
 
   const changeRole = useMutation({
-    mutationFn: (v: { targetUserId: string; role: (typeof ROLES)[number] }) => roleFn({ data: v }),
+    mutationFn: (v: { targetUserId: string; role: (typeof ROLES)[number] }) => setEmployeeRole(v),
     onSuccess: () => {
       toast.success("Rol actualizado");
       qc.invalidateQueries({ queryKey: ["roles"] });
     },
     onError: (e: Error) => toast.error(e.message),
   });
+
 
   const roleOf = (userId: string | null) =>
     (roles.data ?? []).find((r: any) => r.user_id === userId)?.role ?? "empleado";

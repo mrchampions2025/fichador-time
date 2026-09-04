@@ -1,7 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AuthGate } from "@/components/AuthGate";
 import { createFileRoute } from "@tanstack/react-router";
-import { useServerFn } from "@tanstack/react-start";
 import { Download, Pencil, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -36,24 +35,6 @@ import { entryHours, formatHours, MONTHS_ES, monthRange } from "@/lib/hours";
 import { deleteEntry, listEmployees, listEntries, saveEntry } from "@/lib/workforce.functions";
 
 export const Route = createFileRoute("/_authenticated/fichajes")({
-  head: () => ({
-    meta: [
-      { title: "Registro de fichajes | TallerHoras" },
-      {
-        name: "description",
-        content:
-          "Consulta, corrige y exporta todos los fichajes del taller por empleado y periodo.",
-      },
-      { property: "og:title", content: "Registro de fichajes | TallerHoras" },
-      {
-        property: "og:description",
-        content: "Consulta, corrige y exporta los fichajes del taller.",
-      },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary_large_image" },
-    ],
-  }),
-  ssr: false,
   component: () => (
     <AuthGate>
       <FichajesPage />
@@ -70,10 +51,6 @@ function toLocalInput(iso: string | null) {
 
 function FichajesPage() {
   const qc = useQueryClient();
-  const entriesFn = useServerFn(listEntries);
-  const employeesFn = useServerFn(listEmployees);
-  const saveFn = useServerFn(saveEntry);
-  const delFn = useServerFn(deleteEntry);
 
   const today = new Date();
   const [year, setYear] = useState(today.getFullYear());
@@ -90,24 +67,22 @@ function FichajesPage() {
   });
 
   const { from, to } = monthRange(year, month);
-  const employees = useQuery({ queryKey: ["employees"], queryFn: () => employeesFn() });
+  const employees = useQuery({ queryKey: ["employees"], queryFn: () => listEmployees() });
   const entries = useQuery({
     queryKey: ["entries", from, employeeId],
     queryFn: () =>
-      entriesFn({ data: { from, to, employeeId: employeeId === "all" ? null : employeeId } }),
+      listEntries({ from, to, employeeId: employeeId === "all" ? null : employeeId }),
   });
 
   const save = useMutation({
     mutationFn: () =>
-      saveFn({
-        data: {
-          ...(form.id ? { id: form.id } : {}),
-          employee_id: form.employee_id,
-          clock_in: new Date(form.clock_in).toISOString(),
-          clock_out: form.clock_out ? new Date(form.clock_out).toISOString() : null,
-          break_minutes: Number(form.break_minutes),
-          note: form.note || null,
-        },
+      saveEntry({
+        ...(form.id ? { id: form.id } : {}),
+        employee_id: form.employee_id,
+        clock_in: new Date(form.clock_in).toISOString(),
+        clock_out: form.clock_out ? new Date(form.clock_out).toISOString() : null,
+        break_minutes: Number(form.break_minutes),
+        note: form.note || null,
       }),
     onSuccess: () => {
       toast.success("Fichaje guardado");
@@ -118,13 +93,14 @@ function FichajesPage() {
   });
 
   const remove = useMutation({
-    mutationFn: (id: string) => delFn({ data: { id } }),
+    mutationFn: (id: string) => deleteEntry({ id }),
     onSuccess: () => {
       toast.success("Fichaje eliminado");
       qc.invalidateQueries({ queryKey: ["entries"] });
     },
     onError: (e: Error) => toast.error(e.message),
   });
+
 
   const rows = entries.data ?? [];
 

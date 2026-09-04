@@ -11,25 +11,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/auth")({
-  head: () => ({
-    meta: [
-      { title: "Acceso | TallerHoras control horario" },
-      {
-        name: "description",
-        content:
-          "Inicia sesión para fichar tu jornada, consultar tus horas extras y gestionar las nóminas del taller.",
-      },
-      { property: "og:title", content: "Acceso | TallerHoras control horario" },
-      {
-        property: "og:description",
-        content: "Inicia sesión para fichar tu jornada y gestionar las nóminas del taller.",
-      },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary_large_image" },
-    ],
-  }),
   component: AuthPage,
 });
+
 
 function AuthPage() {
   const router = useRouter();

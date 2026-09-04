@@ -1,7 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AuthGate } from "@/components/AuthGate";
 import { createFileRoute } from "@tanstack/react-router";
-import { useServerFn } from "@tanstack/react-start";
 import { LogIn, LogOut, MapPin } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -14,23 +13,6 @@ import { entryHours, formatHours, monthRange, splitOvertime, sumHours } from "@/
 import { clockIn, clockOut, getMe, listEntries } from "@/lib/workforce.functions";
 
 export const Route = createFileRoute("/_authenticated/fichar")({
-  head: () => ({
-    meta: [
-      { title: "Fichar jornada | TallerHoras" },
-      {
-        name: "description",
-        content: "Registra tu entrada y salida y consulta las horas trabajadas del mes.",
-      },
-      { property: "og:title", content: "Fichar jornada | TallerHoras" },
-      {
-        property: "og:description",
-        content: "Registra tu entrada y salida y consulta tus horas del mes.",
-      },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary_large_image" },
-    ],
-  }),
-  ssr: false,
   component: () => (
     <AuthGate>
       <FicharPage />
@@ -40,10 +22,6 @@ export const Route = createFileRoute("/_authenticated/fichar")({
 
 function FicharPage() {
   const qc = useQueryClient();
-  const me = useServerFn(getMe);
-  const entriesFn = useServerFn(listEntries);
-  const inFn = useServerFn(clockIn);
-  const outFn = useServerFn(clockOut);
 
   const [now, setNow] = useState(() => new Date());
   const [breakMinutes, setBreakMinutes] = useState(0);
@@ -54,7 +32,7 @@ function FicharPage() {
     return () => clearInterval(t);
   }, []);
 
-  const meQuery = useQuery({ queryKey: ["me"], queryFn: () => me() });
+  const meQuery = useQuery({ queryKey: ["me"], queryFn: () => getMe() });
   const today = new Date();
   const { from, to } = monthRange(today.getFullYear(), today.getMonth() + 1);
 
@@ -62,7 +40,7 @@ function FicharPage() {
     queryKey: ["my-entries", from],
     enabled: !!meQuery.data?.employee,
     queryFn: () =>
-      entriesFn({ data: { from, to, employeeId: meQuery.data?.employee?.id ?? null } }),
+      listEntries({ from, to, employeeId: meQuery.data?.employee?.id ?? null }),
   });
 
   const refresh = () => {
@@ -82,7 +60,7 @@ function FicharPage() {
           ),
         );
       }
-      return inFn({ data: coords });
+      return clockIn(coords);
     },
     onSuccess: () => {
       toast.success("Entrada registrada");
@@ -92,12 +70,13 @@ function FicharPage() {
   });
 
   const outMut = useMutation({
-    mutationFn: () => outFn({ data: { breakMinutes } }),
+    mutationFn: () => clockOut({ breakMinutes }),
     onSuccess: () => {
       toast.success("Salida registrada");
       setBreakMinutes(0);
       refresh();
     },
+
     onError: (e: Error) => toast.error(e.message),
   });
 
