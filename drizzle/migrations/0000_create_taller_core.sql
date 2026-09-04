@@ -17,7 +17,7 @@ CREATE TABLE public.user_roles (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   UNIQUE (user_id, role)
 );
-GRANT SELECT ON public.user_roles TO authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.user_roles TO authenticated;
 GRANT ALL ON public.user_roles TO service_role;
 ALTER TABLE public.user_roles ENABLE ROW LEVEL SECURITY;
 
@@ -115,6 +115,9 @@ CREATE POLICY "own profile insert" ON public.profiles FOR INSERT TO authenticate
 CREATE POLICY "own profile update" ON public.profiles FOR UPDATE TO authenticated USING (id = auth.uid());
 
 CREATE POLICY "read own roles" ON public.user_roles FOR SELECT TO authenticated USING (user_id = auth.uid() OR public.is_staff(auth.uid()));
+CREATE POLICY "insert roles" ON public.user_roles FOR INSERT TO authenticated WITH CHECK (user_id = auth.uid() OR public.is_staff(auth.uid()));
+CREATE POLICY "update roles" ON public.user_roles FOR UPDATE TO authenticated USING (public.is_staff(auth.uid()));
+CREATE POLICY "delete roles" ON public.user_roles FOR DELETE TO authenticated USING (public.is_staff(auth.uid()));
 
 CREATE POLICY "employees select" ON public.employees FOR SELECT TO authenticated USING (user_id = auth.uid() OR public.is_staff(auth.uid()));
 CREATE POLICY "employees insert" ON public.employees FOR INSERT TO authenticated WITH CHECK (public.is_staff(auth.uid()));
