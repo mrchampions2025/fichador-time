@@ -95,7 +95,7 @@ function EmpleadosPage() {
     mutationFn: () =>
       saveFn({
         data: {
-          id: form.id,
+          ...(form.id ? { id: form.id } : {}),
           full_name: form.full_name,
           dni: form.dni || null,
           email: form.email || null,

@@ -193,7 +193,7 @@ function FicharPage() {
       <Card>
         <CardHeader>
           <CardTitle>Mis fichajes del mes</CardTitle>
-          <CardDescription>Historial completo con horas计 calculadas.</CardDescription>
+          <CardDescription>Historial completo con horas calculadas.</CardDescription>
         </CardHeader>
         <CardContent className="p-0">
           <div className="divide-y divide-border">

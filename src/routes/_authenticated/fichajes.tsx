@@ -95,7 +95,7 @@ function FichajesPage() {
     mutationFn: () =>
       saveFn({
         data: {
-          id: form.id,
+          ...(form.id ? { id: form.id } : {}),
           employee_id: form.employee_id,
           clock_in: new Date(form.clock_in).toISOString(),
           clock_out: form.clock_out ? new Date(form.clock_out).toISOString() : null,
