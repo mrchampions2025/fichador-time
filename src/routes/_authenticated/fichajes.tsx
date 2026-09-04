@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { AuthGate } from "@/components/AuthGate";
 import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { Download, Pencil, Plus, Trash2 } from "lucide-react";
@@ -52,7 +53,12 @@ export const Route = createFileRoute("/_authenticated/fichajes")({
       { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
-  component: FichajesPage,
+  ssr: false,
+  component: () => (
+    <AuthGate>
+      <FichajesPage />
+    </AuthGate>
+  ),
 });
 
 function toLocalInput(iso: string | null) {

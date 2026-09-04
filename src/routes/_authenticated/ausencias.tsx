@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { AuthGate } from "@/components/AuthGate";
 import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { Check, Plus, X } from "lucide-react";
@@ -46,7 +47,12 @@ export const Route = createFileRoute("/_authenticated/ausencias")({
       { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
-  component: AusenciasPage,
+  ssr: false,
+  component: () => (
+    <AuthGate>
+      <AusenciasPage />
+    </AuthGate>
+  ),
 });
 
 const KINDS = ["vacaciones", "baja médica", "permiso", "asuntos propios"] as const;

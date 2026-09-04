@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { AuthGate } from "@/components/AuthGate";
 import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { LogIn, LogOut, MapPin } from "lucide-react";
@@ -29,7 +30,12 @@ export const Route = createFileRoute("/_authenticated/fichar")({
       { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
-  component: FicharPage,
+  ssr: false,
+  component: () => (
+    <AuthGate>
+      <FicharPage />
+    </AuthGate>
+  ),
 });
 
 function FicharPage() {

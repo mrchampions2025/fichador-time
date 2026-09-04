@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { AuthGate } from "@/components/AuthGate";
 import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { Pencil, Plus } from "lucide-react";
@@ -47,7 +48,12 @@ export const Route = createFileRoute("/_authenticated/empleados")({
       { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
-  component: EmpleadosPage,
+  ssr: false,
+  component: () => (
+    <AuthGate>
+      <EmpleadosPage />
+    </AuthGate>
+  ),
 });
 
 type EmployeeForm = {
