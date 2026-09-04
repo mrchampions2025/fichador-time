@@ -15,6 +15,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedEmpleadosRouteImport } from './routes/_authenticated/empleados'
 import { Route as AuthenticatedFichajesRouteImport } from './routes/_authenticated/fichajes'
 import { Route as AuthenticatedFicharRouteImport } from './routes/_authenticated/fichar'
+import { Route as AuthenticatedNominasRouteImport } from './routes/_authenticated/nominas'
 import { Route as AuthenticatedPanelRouteImport } from './routes/_authenticated/panel'
 
 const IndexRoute = IndexRouteImport.update({
@@ -46,6 +47,11 @@ const AuthenticatedFicharRoute = AuthenticatedFicharRouteImport.update({
   path: '/fichar',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedNominasRoute = AuthenticatedNominasRouteImport.update({
+  id: '/nominas',
+  path: '/nominas',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedPanelRoute = AuthenticatedPanelRouteImport.update({
   id: '/panel',
   path: '/panel',
@@ -58,6 +64,7 @@ export interface FileRoutesByFullPath {
   '/empleados': typeof AuthenticatedEmpleadosRoute
   '/fichajes': typeof AuthenticatedFichajesRoute
   '/fichar': typeof AuthenticatedFicharRoute
+  '/nominas': typeof AuthenticatedNominasRoute
   '/panel': typeof AuthenticatedPanelRoute
 }
 export interface FileRoutesByTo {
@@ -66,6 +73,7 @@ export interface FileRoutesByTo {
   '/empleados': typeof AuthenticatedEmpleadosRoute
   '/fichajes': typeof AuthenticatedFichajesRoute
   '/fichar': typeof AuthenticatedFicharRoute
+  '/nominas': typeof AuthenticatedNominasRoute
   '/panel': typeof AuthenticatedPanelRoute
 }
 export interface FileRoutesById {
@@ -76,13 +84,28 @@ export interface FileRoutesById {
   '/_authenticated/empleados': typeof AuthenticatedEmpleadosRoute
   '/_authenticated/fichajes': typeof AuthenticatedFichajesRoute
   '/_authenticated/fichar': typeof AuthenticatedFicharRoute
+  '/_authenticated/nominas': typeof AuthenticatedNominasRoute
   '/_authenticated/panel': typeof AuthenticatedPanelRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/auth' | '/empleados' | '/fichajes' | '/fichar' | '/panel'
+  fullPaths:
+    | '/'
+    | '/auth'
+    | '/empleados'
+    | '/fichajes'
+    | '/fichar'
+    | '/nominas'
+    | '/panel'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/auth' | '/empleados' | '/fichajes' | '/fichar' | '/panel'
+  to:
+    | '/'
+    | '/auth'
+    | '/empleados'
+    | '/fichajes'
+    | '/fichar'
+    | '/nominas'
+    | '/panel'
   id:
     | '__root__'
     | '/'
@@ -91,6 +114,7 @@ export interface FileRouteTypes {
     | '/_authenticated/empleados'
     | '/_authenticated/fichajes'
     | '/_authenticated/fichar'
+    | '/_authenticated/nominas'
     | '/_authenticated/panel'
   fileRoutesById: FileRoutesById
 }
@@ -144,6 +168,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedFicharRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/nominas': {
+      id: '/_authenticated/nominas'
+      path: '/nominas'
+      fullPath: '/nominas'
+      preLoaderRoute: typeof AuthenticatedNominasRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/panel': {
       id: '/_authenticated/panel'
       path: '/panel'
@@ -158,6 +189,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedEmpleadosRoute: typeof AuthenticatedEmpleadosRoute
   AuthenticatedFichajesRoute: typeof AuthenticatedFichajesRoute
   AuthenticatedFicharRoute: typeof AuthenticatedFicharRoute
+  AuthenticatedNominasRoute: typeof AuthenticatedNominasRoute
   AuthenticatedPanelRoute: typeof AuthenticatedPanelRoute
 }
 
@@ -165,6 +197,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedEmpleadosRoute: AuthenticatedEmpleadosRoute,
   AuthenticatedFichajesRoute: AuthenticatedFichajesRoute,
   AuthenticatedFicharRoute: AuthenticatedFicharRoute,
+  AuthenticatedNominasRoute: AuthenticatedNominasRoute,
   AuthenticatedPanelRoute: AuthenticatedPanelRoute,
 }
 
