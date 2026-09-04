@@ -133,13 +133,13 @@
 }
 
 @media print {
-  body * {
+  body.printing-payroll * {
     visibility: hidden !important;
   }
-  #payroll-document, #payroll-document * {
+  body.printing-payroll #payroll-document, body.printing-payroll #payroll-document * {
     visibility: visible !important;
   }
-  #payroll-document {
+  body.printing-payroll #payroll-document {
     position: fixed !important;
     left: 0 !important;
     top: 0 !important;

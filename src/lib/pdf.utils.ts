@@ -38,7 +38,6 @@ export async function viewPayrollDocumentPdf(elementId = "payroll-document"): Pr
     const canvas = await html2canvas(element, {
       scale: 2,
       useCORS: true,
-      allowTaint: true,
       logging: false,
       backgroundColor: "#ffffff",
     });
@@ -82,7 +81,6 @@ export async function downloadPayrollDocumentPdf(
     const canvas = await html2canvas(element, {
       scale: 2,
       useCORS: true,
-      allowTaint: true,
       logging: false,
       backgroundColor: "#ffffff",
     });
@@ -110,54 +108,12 @@ export function printPayrollDocument(elementId = "payroll-document"): void {
     return;
   }
 
-  // Create an isolated iframe for printing to guarantee 100% style fidelity without blank pages
-  const iframe = document.createElement("iframe");
-  iframe.style.position = "fixed";
-  iframe.style.right = "0";
-  iframe.style.bottom = "0";
-  iframe.style.width = "0px";
-  iframe.style.height = "0px";
-  iframe.style.border = "none";
-  document.body.appendChild(iframe);
-
-  const doc = iframe.contentWindow?.document;
-  if (!doc) return;
-
-  const styles = Array.from(document.querySelectorAll("style, link[rel='stylesheet']"))
-    .map((s) => s.outerHTML)
-    .join("\n");
-
-  doc.open();
-  doc.write(`
-    <!DOCTYPE html>
-    <html>
-      <head>
-        <title>Imprimir Nómina</title>
-        ${styles}
-        <style>
-          @media print {
-            body { background: #ffffff !important; color: #1e293b !important; padding: 20px !important; margin: 0 !important; }
-            .print\\:hidden { display: none !important; }
-            * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-          }
-        </style>
-      </head>
-      <body>
-        <div style="width: 100%; max-width: 850px; margin: 0 auto;">
-          ${elem.outerHTML}
-        </div>
-      </body>
-    </html>
-  `);
-  doc.close();
-
+  document.body.classList.add("printing-payroll");
+  
   setTimeout(() => {
-    iframe.contentWindow?.focus();
-    iframe.contentWindow?.print();
+    window.print();
     setTimeout(() => {
-      if (document.body.contains(iframe)) {
-        document.body.removeChild(iframe);
-      }
-    }, 1000);
-  }, 400);
+      document.body.classList.remove("printing-payroll");
+    }, 500);
+  }, 100);
 }

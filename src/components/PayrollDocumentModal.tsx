@@ -199,7 +199,7 @@ export function PayrollDocumentModal({
             {/* Top Right: COMPANY LOGO (logoUrl) */}
             <div className="bg-white/10 p-2 rounded border border-white/20 flex items-center justify-center min-w-[120px] min-h-[60px]">
               {company.logoUrl ? (
-                <img src={company.logoUrl} alt="Logo Empresa" className="h-14 object-contain max-w-[140px]" />
+                <img src={company.logoUrl} crossOrigin="anonymous" alt="Logo Empresa" className="h-14 object-contain max-w-[140px]" />
               ) : (
                 <div className="text-center p-1">
                   <div className="text-xs font-bold text-amber-400">NEUMACAR</div>
@@ -342,7 +342,7 @@ export function PayrollDocumentModal({
             <div className="flex flex-col items-center justify-end text-center space-y-2">
               <div className="min-h-[100px] flex items-center justify-center">
                 {company.stampUrl ? (
-                  <img src={company.stampUrl} alt="Sello y Firma Empresa" className="max-h-24 object-contain" />
+                  <img src={company.stampUrl} crossOrigin="anonymous" alt="Sello y Firma Empresa" className="max-h-24 object-contain" />
                 ) : (
                   <div className="border-2 border-blue-800 rounded p-2 text-blue-900 font-bold text-xs leading-snug">
                     <p className="text-sm font-extrabold">{company.name}</p>
