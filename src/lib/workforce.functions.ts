@@ -241,9 +241,19 @@ export async function saveEmployee(data: {
   assertStaff(await loadRoles(user.id));
   const { id, password, role, ...payload } = data;
 
+  let existingUserId: string | null = null;
+  if (id) {
+    const { data: existingEmp } = await supabase
+      .from("employees")
+      .select("user_id")
+      .eq("id", id)
+      .maybeSingle();
+    existingUserId = existingEmp?.user_id ?? null;
+  }
+
   let createdUserId: string | null = null;
 
-  if (password && payload.email && !id) {
+  if (password && payload.email) {
     const SUPABASE_URL =
       (import.meta.env && (import.meta.env.VITE_SUPABASE_URL || import.meta.env.SUPABASE_URL)) ||
       "https://vprixytfssnbdvbaqrlr.supabase.co";
@@ -268,7 +278,14 @@ export async function saveEmployee(data: {
     });
 
     if (authError) {
-      console.warn("Auth sign up warning:", authError.message);
+      if (
+        authError.message.toLowerCase().includes("already registered") ||
+        authError.message.toLowerCase().includes("already exists")
+      ) {
+        console.warn("User already exists in Auth:", authError.message);
+      } else {
+        throw new Error(`Error en el registro de acceso para ${payload.email}: ${authError.message}`);
+      }
     } else if (authData.user) {
       createdUserId = authData.user.id;
       await supabase.from("profiles").upsert(
@@ -302,7 +319,7 @@ export async function saveEmployee(data: {
     emp = inserted;
   }
 
-  const targetUserId = createdUserId || emp?.user_id;
+  const targetUserId = createdUserId || existingUserId || emp?.user_id;
   if (targetUserId && role) {
     await supabase.from("user_roles").delete().eq("user_id", targetUserId);
     await supabase.from("user_roles").insert({ user_id: targetUserId, role });
