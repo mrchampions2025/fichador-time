@@ -299,12 +299,12 @@ function EmpleadosPage() {
             <Field label="Contraseña inicial de acceso" className="sm:col-span-2">
               <Input
                 type="password"
-                placeholder={form.id ? "Dejar en blanco para no cambiar" : "Contraseña para entrar a la web"}
+                placeholder={form.id ? "Dejar en blanco para no cambiar" : "Contraseña (mínimo 6 caracteres)"}
                 value={form.password ?? ""}
                 onChange={(e) => setForm({ ...form, password: e.target.value })}
               />
               <p className="text-xs text-muted-foreground mt-1">
-                Al asignar correo y contraseña, el empleado podrá acceder directamente a la aplicación para fichar su jornada.
+                <span className="font-semibold text-amber-600">Requisito de acceso:</span> Debe incluir <strong>Correo electrónico</strong> y una contraseña de al menos 6 caracteres para que el empleado pueda iniciar sesión.
               </p>
             </Field>
             <div className="flex items-center gap-3 pt-2 sm:col-span-2">

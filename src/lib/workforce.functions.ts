@@ -252,7 +252,14 @@ export async function saveEmployee(data: {
 
   let createdUserId: string | null = null;
 
-  if (password && payload.email) {
+  if (password && password.trim().length > 0) {
+    if (!payload.email || !payload.email.trim()) {
+      throw new Error("Debes indicar un correo electrónico para poder asignar una contraseña de acceso.");
+    }
+    if (password.length < 6) {
+      throw new Error("La contraseña debe tener al menos 6 caracteres.");
+    }
+
     const tempClient = createNonPersistingClient();
 
     const { data: authData, error: authError } = await tempClient.auth.signUp({
