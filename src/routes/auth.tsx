@@ -21,14 +21,24 @@ function AuthPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
+  const [authError, setAuthError] = useState<string | null>(null);
 
   async function signIn(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
+    setAuthError(null);
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     setLoading(false);
     if (error) {
-      toast.error(error.message);
+      const msg = error.message;
+      let explanation = msg;
+      if (msg.toLowerCase().includes("invalid login credentials")) {
+        explanation = "Credenciales de acceso no válidas. El usuario no existe en la base de datos de Supabase Auth o la contraseña es incorrecta.";
+      } else if (msg.toLowerCase().includes("email not confirmed")) {
+        explanation = "El correo aún no ha sido confirmado por enlace de activación. Puedes desactivar la confirmación obligatoria en el panel de Supabase (Auth -> Providers -> Email -> Confirm email).";
+      }
+      setAuthError(`${msg} (${explanation})`);
+      toast.error(msg);
       return;
     }
     router.navigate({ to: "/fichar" });
@@ -37,6 +47,7 @@ function AuthPage() {
   async function signUp(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
+    setAuthError(null);
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -47,6 +58,7 @@ function AuthPage() {
     });
     setLoading(false);
     if (error) {
+      setAuthError(error.message);
       toast.error(error.message);
       return;
     }
@@ -75,10 +87,16 @@ function AuthPage() {
             <CardDescription>Ficha tu jornada y consulta tus horas en un clic.</CardDescription>
           </CardHeader>
           <CardContent>
+            {authError && (
+              <div className="mb-4 rounded-md bg-destructive/15 p-3.5 text-xs text-destructive border border-destructive/30 space-y-1">
+                <p className="font-semibold text-sm">❌ Error al acceder:</p>
+                <p className="leading-relaxed">{authError}</p>
+              </div>
+            )}
             <Tabs defaultValue="login">
               <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="login">Entrar</TabsTrigger>
-                <TabsTrigger value="signup">Crear cuenta</TabsTrigger>
+                <TabsTrigger value="login" onClick={() => setAuthError(null)}>Entrar</TabsTrigger>
+                <TabsTrigger value="signup" onClick={() => setAuthError(null)}>Crear cuenta</TabsTrigger>
               </TabsList>
 
               <TabsContent value="login">
@@ -90,7 +108,10 @@ function AuthPage() {
                       type="email"
                       required
                       value={email}
-                      onChange={(e) => setEmail(e.target.value)}
+                      onChange={(e) => {
+                        setEmail(e.target.value);
+                        if (authError) setAuthError(null);
+                      }}
                       placeholder="nombre@taller.es"
                     />
                   </div>
@@ -101,7 +122,10 @@ function AuthPage() {
                       type="password"
                       required
                       value={password}
-                      onChange={(e) => setPassword(e.target.value)}
+                      onChange={(e) => {
+                        setPassword(e.target.value);
+                        if (authError) setAuthError(null);
+                      }}
                     />
                   </div>
                   <Button type="submit" className="w-full" disabled={loading}>
