@@ -1,3 +1,4 @@
+import { createClient } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { monthRange, splitOvertime, sumHours } from "./hours";
 
@@ -233,14 +234,80 @@ export async function saveEmployee(data: {
   overtime_multiplier: number;
   weekly_hours: number;
   active: boolean;
+  password?: string;
+  role?: Role;
 }) {
   const user = await getAuthUser();
   assertStaff(await loadRoles(user.id));
-  const { id, ...payload } = data;
-  const { error } = id
-    ? await supabase.from("employees").update(payload).eq("id", id)
-    : await supabase.from("employees").insert(payload);
-  if (error) throw new Error(error.message);
+  const { id, password, role, ...payload } = data;
+
+  let createdUserId: string | null = null;
+
+  if (password && payload.email && !id) {
+    const SUPABASE_URL =
+      (import.meta.env && (import.meta.env.VITE_SUPABASE_URL || import.meta.env.SUPABASE_URL)) ||
+      "https://vprixytfssnbdvbaqrlr.supabase.co";
+    const SUPABASE_KEY =
+      (import.meta.env &&
+        (import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ||
+          import.meta.env.VITE_SUPABASE_ANON_KEY ||
+          import.meta.env.SUPABASE_PUBLISHABLE_KEY ||
+          import.meta.env.SUPABASE_ANON_KEY)) ||
+      "sb_publishable_zZSh4oWMKQgIsyMorKzVMA_7pMcYyCF";
+
+    const tempClient = createClient(SUPABASE_URL, SUPABASE_KEY, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+
+    const { data: authData, error: authError } = await tempClient.auth.signUp({
+      email: payload.email,
+      password: password,
+      options: {
+        data: { full_name: payload.full_name },
+      },
+    });
+
+    if (authError) {
+      console.warn("Auth sign up warning:", authError.message);
+    } else if (authData.user) {
+      createdUserId = authData.user.id;
+      await supabase.from("profiles").upsert(
+        { id: createdUserId, full_name: payload.full_name, email: payload.email },
+        { onConflict: "id" }
+      );
+    }
+  }
+
+  if (createdUserId) {
+    payload.user_id = createdUserId;
+  }
+
+  let emp: any = null;
+  if (id) {
+    const { data: updated, error } = await supabase
+      .from("employees")
+      .update(payload)
+      .eq("id", id)
+      .select("*")
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    emp = updated;
+  } else {
+    const { data: inserted, error } = await supabase
+      .from("employees")
+      .insert(payload)
+      .select("*")
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    emp = inserted;
+  }
+
+  const targetUserId = createdUserId || emp?.user_id;
+  if (targetUserId && role) {
+    await supabase.from("user_roles").delete().eq("user_id", targetUserId);
+    await supabase.from("user_roles").insert({ user_id: targetUserId, role });
+  }
+
   return { ok: true };
 }
 
