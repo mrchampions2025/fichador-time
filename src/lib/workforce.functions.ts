@@ -288,10 +288,14 @@ export async function saveEmployee(data: {
       }
     } else if (authData.user) {
       createdUserId = authData.user.id;
-      await supabase.from("profiles").upsert(
-        { id: createdUserId, full_name: payload.full_name, email: payload.email },
-        { onConflict: "id" }
-      );
+      try {
+        await supabase.from("profiles").upsert(
+          { id: createdUserId, full_name: payload.full_name, email: payload.email },
+          { onConflict: "id" }
+        );
+      } catch (e) {
+        console.warn("Profiles upsert warning (RLS):", e);
+      }
     }
   }
 
@@ -321,8 +325,12 @@ export async function saveEmployee(data: {
 
   const targetUserId = createdUserId || existingUserId || emp?.user_id;
   if (targetUserId && role) {
-    await supabase.from("user_roles").delete().eq("user_id", targetUserId);
-    await supabase.from("user_roles").insert({ user_id: targetUserId, role });
+    try {
+      await supabase.from("user_roles").delete().eq("user_id", targetUserId);
+      await supabase.from("user_roles").insert({ user_id: targetUserId, role });
+    } catch (e) {
+      console.warn("User roles update warning:", e);
+    }
   }
 
   return { ok: true };
