@@ -289,6 +289,8 @@ export async function saveEmployee(data: {
       } catch (e) {
         console.warn("Profiles upsert warning (RLS):", e);
       }
+    } else {
+      throw new Error(`No se devolvió un usuario de acceso para ${payload.email}. Revisa la configuración de Supabase Auth.`);
     }
   }
 

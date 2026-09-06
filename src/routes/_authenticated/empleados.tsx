@@ -225,6 +225,11 @@ function EmpleadosPage() {
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 sm:grid-cols-2">
+            {!form.user_id && (
+              <div className="rounded-md bg-amber-500/10 p-3 text-xs text-amber-700 dark:text-amber-400 border border-amber-500/20 sm:col-span-2">
+                ⚠️ <strong>Atención:</strong> Para activar el acceso a la web de este empleado, debes rellenar su <strong>Correo electrónico</strong> y una <strong>Contraseña de al menos 6 caracteres</strong>. Si dejas el correo o la contraseña vacíos, se guardará como ficha laboral pero no podrá iniciar sesión.
+              </div>
+            )}
             <Field label="Nombre y apellidos" className="sm:col-span-2">
               <Input
                 value={form.full_name}
