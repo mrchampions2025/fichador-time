@@ -1,5 +1,4 @@
-import { createClient } from "@supabase/supabase-js";
-import { supabase } from "@/integrations/supabase/client";
+import { createNonPersistingClient, supabase } from "@/integrations/supabase/client";
 import { monthRange, splitOvertime, sumHours } from "./hours";
 
 type Role = "gerente" | "encargado" | "administracion" | "empleado";
@@ -254,20 +253,7 @@ export async function saveEmployee(data: {
   let createdUserId: string | null = null;
 
   if (password && payload.email) {
-    const SUPABASE_URL =
-      (import.meta.env && (import.meta.env.VITE_SUPABASE_URL || import.meta.env.SUPABASE_URL)) ||
-      "https://vprixytfssnbdvbaqrlr.supabase.co";
-    const SUPABASE_KEY =
-      (import.meta.env &&
-        (import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ||
-          import.meta.env.VITE_SUPABASE_ANON_KEY ||
-          import.meta.env.SUPABASE_PUBLISHABLE_KEY ||
-          import.meta.env.SUPABASE_ANON_KEY)) ||
-      "sb_publishable_zZSh4oWMKQgIsyMorKzVMA_7pMcYyCF";
-
-    const tempClient = createClient(SUPABASE_URL, SUPABASE_KEY, {
-      auth: { persistSession: false, autoRefreshToken: false },
-    });
+    const tempClient = createNonPersistingClient();
 
     const { data: authData, error: authError } = await tempClient.auth.signUp({
       email: payload.email,

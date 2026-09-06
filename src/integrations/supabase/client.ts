@@ -79,3 +79,41 @@ export const supabase = new Proxy({} as ReturnType<typeof createSupabaseClient>,
   },
 });
 
+export function createNonPersistingClient() {
+  const env = import.meta.env || {};
+  const procEnv = (typeof process !== 'undefined' && process.env) || {};
+
+  const SUPABASE_URL =
+    env['VITE_SUPABASE_URL'] ||
+    env['NEXT_PUBLIC_SUPABASE_URL'] ||
+    env['SUPABASE_URL'] ||
+    procEnv['VITE_SUPABASE_URL'] ||
+    procEnv['SUPABASE_URL'] ||
+    procEnv['NEXT_PUBLIC_SUPABASE_URL'] ||
+    DEFAULT_SUPABASE_URL;
+
+  const SUPABASE_PUBLISHABLE_KEY =
+    env['VITE_SUPABASE_PUBLISHABLE_KEY'] ||
+    env['VITE_SUPABASE_ANON_KEY'] ||
+    env['NEXT_PUBLIC_SUPABASE_ANON_KEY'] ||
+    env['SUPABASE_ANON_KEY'] ||
+    env['SUPABASE_PUBLISHABLE_KEY'] ||
+    procEnv['VITE_SUPABASE_PUBLISHABLE_KEY'] ||
+    procEnv['VITE_SUPABASE_ANON_KEY'] ||
+    procEnv['SUPABASE_PUBLISHABLE_KEY'] ||
+    procEnv['SUPABASE_ANON_KEY'] ||
+    procEnv['NEXT_PUBLIC_SUPABASE_ANON_KEY'] ||
+    DEFAULT_SUPABASE_KEY;
+
+  return createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+    global: {
+      fetch: createSupabaseFetch(SUPABASE_PUBLISHABLE_KEY),
+    },
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+    },
+  });
+}
+
+
