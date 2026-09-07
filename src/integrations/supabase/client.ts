@@ -27,7 +27,7 @@ function createSupabaseFetch(supabaseKey: string): typeof fetch {
 
 
 const DEFAULT_SUPABASE_URL = "https://eriuixyarvfgnffgkiav.supabase.co";
-const DEFAULT_SUPABASE_KEY = "sb_publishable_zZSh4oWMKQgIsyMorKzVMA_7pMcYyCF";
+const DEFAULT_SUPABASE_KEY = "sb_publishable_qxyTN7pN7ZXE3mppwxky9g_9R0B_iOf";
 
 function createSupabaseClient() {
   const env = import.meta.env || {};
