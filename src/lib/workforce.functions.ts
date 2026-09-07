@@ -374,7 +374,13 @@ export async function listAbsences() {
   return data ?? [];
 }
 
-export async function createAbsence(data: { kind: string; start_date: string; end_date: string; reason?: string }) {
+export async function createAbsence(data: {
+  kind: string;
+  start_date: string;
+  end_date: string;
+  reason?: string;
+  attachment_url?: string;
+}) {
   const user = await getAuthUser();
   const { data: emp } = await supabase
     .from("employees")
@@ -382,12 +388,18 @@ export async function createAbsence(data: { kind: string; start_date: string; en
     .eq("user_id", user.id)
     .maybeSingle();
   if (!emp) throw new Error("No hay ficha de empleado asociada a tu cuenta");
+
+  let fullReason = data.reason ?? "";
+  if (data.attachment_url) {
+    fullReason = `${fullReason} [ADJUNTO:${data.attachment_url}]`.trim();
+  }
+
   const { error } = await supabase.from("absence_requests").insert({
     employee_id: emp.id,
     kind: data.kind,
     start_date: data.start_date,
     end_date: data.end_date,
-    reason: data.reason ?? null,
+    reason: fullReason || null,
   });
   if (error) throw new Error(error.message);
   return { ok: true };

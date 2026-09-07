@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AuthGate } from "@/components/AuthGate";
 import { createFileRoute } from "@tanstack/react-router";
-import { Download, MapPin, Pencil, Plus, Trash2 } from "lucide-react";
+import { Download, MapPin, Pencil, Plus, Trash2, FileText, AlertTriangle, Calendar } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -34,6 +34,8 @@ import {
 } from "@/components/ui/table";
 import { entryHours, formatHours, MONTHS_ES, monthRange } from "@/lib/hours";
 import { deleteEntry, listEmployees, listEntries, saveEntry } from "@/lib/workforce.functions";
+import { MonthlyReportModal } from "@/components/MonthlyReportModal";
+import { getCompanySettings } from "@/lib/company.settings";
 
 export const Route = createFileRoute("/_authenticated/fichajes")({
   component: () => (
@@ -52,12 +54,16 @@ function toLocalInput(iso: string | null) {
 
 function FichajesPage() {
   const qc = useQueryClient();
+  const company = getCompanySettings();
 
   const today = new Date();
   const [year, setYear] = useState(today.getFullYear());
   const [month, setMonth] = useState(today.getMonth() + 1);
   const [employeeId, setEmployeeId] = useState<string>("all");
   const [open, setOpen] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
+  const [selectedReportEmp, setSelectedReportEmp] = useState<any>(null);
+
   const [form, setForm] = useState({
     id: undefined as string | undefined,
     employee_id: "",
@@ -104,7 +110,6 @@ function FichajesPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
-
   const rows = entries.data ?? [];
 
   function exportCsv() {
@@ -137,7 +142,7 @@ function FichajesPage() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground">Fichajes</h1>
           <p className="text-sm text-muted-foreground">
-            Registro completo del taller con ubicación GPS y corrección manual.
+            Registro completo del taller con ubicación GPS, auditoría y hoja mensual oficial.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -178,6 +183,23 @@ function FichajesPage() {
               ))}
             </SelectContent>
           </Select>
+
+          <Button
+            variant="outline"
+            className="text-blue-600 border-blue-500/30 hover:bg-blue-50"
+            onClick={() => {
+              const emp = (employees.data ?? []).find((e: any) => e.id === employeeId) || (employees.data ?? [])[0];
+              if (!emp) {
+                toast.error("Selecciona un empleado para ver su registro mensual");
+                return;
+              }
+              setSelectedReportEmp(emp);
+              setReportOpen(true);
+            }}
+          >
+            <FileText className="mr-1.5 size-4" /> Registro Mensual (PDF)
+          </Button>
+
           <Button variant="outline" onClick={exportCsv}>
             <Download className="mr-2 size-4" /> CSV
           </Button>
@@ -212,84 +234,122 @@ function FichajesPage() {
                 <TableHead>Ubicación GPS</TableHead>
                 <TableHead>Pausa</TableHead>
                 <TableHead>Horas</TableHead>
+                <TableHead>Estado / Auditoría</TableHead>
                 <TableHead />
               </TableRow>
             </TableHeader>
             <TableBody>
               {rows.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={7} className="py-8 text-center text-muted-foreground">
+                  <TableCell colSpan={8} className="py-8 text-center text-muted-foreground">
                     No hay fichajes en este periodo.
                   </TableCell>
                 </TableRow>
               )}
-              {rows.map((r: any) => (
-                <TableRow key={r.id}>
-                  <TableCell className="font-medium">{r.employees?.full_name}</TableCell>
-                  <TableCell>{new Date(r.clock_in).toLocaleString("es-ES")}</TableCell>
-                  <TableCell>
-                    {r.clock_out ? (
-                      new Date(r.clock_out).toLocaleString("es-ES")
-                    ) : (
-                      <span className="text-accent">En curso</span>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    {r.latitude && r.longitude ? (
-                      <a
-                        href={`https://www.google.com/maps?q=${r.latitude},${r.longitude}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 text-xs text-blue-600 hover:underline bg-blue-50 dark:bg-blue-950/40 px-2.5 py-1 rounded border border-blue-200 dark:border-blue-800 font-medium"
-                        title={`Coordenadas: ${r.latitude}, ${r.longitude}`}
+              {rows.map((r: any) => {
+                const clockInDate = new Date(r.clock_in);
+                const clockInIso = clockInDate.toISOString().split("T")[0];
+                const isForgotten = !r.clock_out && (Date.now() - clockInDate.getTime() > 12 * 3600 * 1000);
+                const holidayObj = (company.holidays || []).find((h) => h.date === clockInIso);
+                const isManual = r.source === "manual" || !!r.note;
+
+                return (
+                  <TableRow key={r.id}>
+                    <TableCell className="font-medium">{r.employees?.full_name}</TableCell>
+                    <TableCell>{clockInDate.toLocaleString("es-ES")}</TableCell>
+                    <TableCell>
+                      {r.clock_out ? (
+                        new Date(r.clock_out).toLocaleString("es-ES")
+                      ) : isForgotten ? (
+                        <Badge variant="destructive" className="text-[10px] animate-pulse">
+                          ⚠️ Olvidado (+12h)
+                        </Badge>
+                      ) : (
+                        <span className="text-accent font-medium">En curso</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {r.latitude && r.longitude ? (
+                        <a
+                          href={`https://www.google.com/maps?q=${r.latitude},${r.longitude}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 text-xs text-blue-600 hover:underline bg-blue-50 dark:bg-blue-950/40 px-2.5 py-1 rounded border border-blue-200 dark:border-blue-800 font-medium"
+                          title={`Coordenadas: ${r.latitude}, ${r.longitude}`}
+                        >
+                          <MapPin className="size-3.5 text-blue-600" />
+                          Ver mapa
+                        </a>
+                      ) : (
+                        <Badge variant="outline" className="text-[11px] text-muted-foreground border-muted">
+                          Sin GPS
+                        </Badge>
+                      )}
+                    </TableCell>
+                    <TableCell>{r.break_minutes} min</TableCell>
+                    <TableCell className="tabular-nums">{formatHours(entryHours(r))}</TableCell>
+                    <TableCell>
+                      <div className="flex flex-wrap gap-1">
+                        {holidayObj && (
+                          <Badge variant="outline" className="text-[10px] bg-amber-500/10 text-amber-700 border-amber-500/30">
+                            <Calendar className="mr-1 size-3" /> Festivo: {holidayObj.name}
+                          </Badge>
+                        )}
+                        {isManual && (
+                          <Badge variant="secondary" className="text-[10px]" title={r.note || "Ajuste manual"}>
+                            Editado manual
+                          </Badge>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        aria-label="Editar"
+                        onClick={() => {
+                          setForm({
+                            id: r.id,
+                            employee_id: r.employee_id,
+                            clock_in: toLocalInput(r.clock_in),
+                            clock_out: toLocalInput(r.clock_out),
+                            break_minutes: r.break_minutes,
+                            note: r.note ?? "",
+                            latitude: r.latitude ?? null,
+                            longitude: r.longitude ?? null,
+                          });
+                          setOpen(true);
+                        }}
                       >
-                        <MapPin className="size-3.5 text-blue-600" />
-                        Ver mapa
-                      </a>
-                    ) : (
-                      <Badge variant="outline" className="text-[11px] text-muted-foreground border-muted">
-                        Sin GPS
-                      </Badge>
-                    )}
-                  </TableCell>
-                  <TableCell>{r.break_minutes} min</TableCell>
-                  <TableCell className="tabular-nums">{formatHours(entryHours(r))}</TableCell>
-                  <TableCell className="text-right">
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      aria-label="Editar"
-                      onClick={() => {
-                        setForm({
-                          id: r.id,
-                          employee_id: r.employee_id,
-                          clock_in: toLocalInput(r.clock_in),
-                          clock_out: toLocalInput(r.clock_out),
-                          break_minutes: r.break_minutes,
-                          note: r.note ?? "",
-                          latitude: r.latitude ?? null,
-                          longitude: r.longitude ?? null,
-                        });
-                        setOpen(true);
-                      }}
-                    >
-                      <Pencil className="size-4" />
-                    </Button>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      aria-label="Eliminar"
-                      onClick={() => remove.mutate(r.id)}
-                    >
-                      <Trash2 className="size-4 text-destructive" />
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
+                        <Pencil className="size-4" />
+                      </Button>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        aria-label="Eliminar"
+                        onClick={() => remove.mutate(r.id)}
+                      >
+                        <Trash2 className="size-4 text-destructive" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
         </CardContent>
       </Card>
+
+      {selectedReportEmp && (
+        <MonthlyReportModal
+          open={reportOpen}
+          onOpenChange={setReportOpen}
+          employee={selectedReportEmp}
+          year={year}
+          month={month}
+          entries={rows.filter((r: any) => r.employee_id === selectedReportEmp.id)}
+        />
+      )}
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent>

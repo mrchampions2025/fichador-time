@@ -6,8 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { SignatureCanvas } from "@/components/SignatureCanvas";
-import { getCompanySettings, saveCompanySettings, CompanySettings } from "@/lib/company.settings";
-import { Building2, Save, Upload, Stamp, Image as ImageIcon } from "lucide-react";
+import { getCompanySettings, saveCompanySettings, CompanySettings, HolidayItem } from "@/lib/company.settings";
+import { Building2, Save, Upload, Stamp, Image as ImageIcon, Calendar, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/configuracion")({
@@ -21,6 +21,9 @@ export const Route = createFileRoute("/_authenticated/configuracion")({
 function ConfiguracionPage() {
   const [settings, setSettings] = useState<CompanySettings>(getCompanySettings());
   const [stampTab, setStampTab] = useState<"draw" | "upload">("draw");
+
+  const [newHolidayDate, setNewHolidayDate] = useState("");
+  const [newHolidayName, setNewHolidayName] = useState("");
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
@@ -62,6 +65,34 @@ function ConfiguracionPage() {
     toast.success("Sello de empresa eliminado");
   };
 
+  const handleAddHoliday = () => {
+    if (!newHolidayDate || !newHolidayName.trim()) {
+      toast.error("Por favor introduce una fecha y el nombre del festivo");
+      return;
+    }
+    const newItem: HolidayItem = {
+      id: "h_" + Date.now(),
+      date: newHolidayDate,
+      name: newHolidayName.trim(),
+    };
+    const updatedHolidays = [...(settings.holidays || []), newItem].sort((a, b) =>
+      a.date.localeCompare(b.date)
+    );
+    const updated = { ...settings, holidays: updatedHolidays };
+    setSettings(updated);
+    saveCompanySettings(updated);
+    setNewHolidayDate("");
+    setNewHolidayName("");
+    toast.success("Festivo añadido al calendario laboral del taller");
+  };
+
+  const handleRemoveHoliday = (id: string) => {
+    const updatedHolidays = (settings.holidays || []).filter((h) => h.id !== id);
+    const updated = { ...settings, holidays: updatedHolidays };
+    setSettings(updated);
+    saveCompanySettings(updated);
+    toast.success("Festivo eliminado");
+  };
 
   return (
     <div className="space-y-6 max-w-4xl">
@@ -70,7 +101,7 @@ function ConfiguracionPage() {
           <Building2 className="size-6 text-primary" /> Configuración del Taller y Nóminas
         </h1>
         <p className="text-sm text-muted-foreground">
-          Define el logo, sello, firma y datos fiscales de tu empresa para que aparezcan por defecto en todas las nóminas.
+          Define el logo, sello, datos fiscales y el calendario laboral de festivos de tu empresa.
         </p>
       </div>
 
@@ -134,7 +165,78 @@ function ConfiguracionPage() {
           </CardContent>
         </Card>
 
-        {/* 1. Logo de la Empresa Settings (Upper Right Header Box) */}
+        {/* 3. Calendario Laboral de Festivos */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Calendar className="size-5 text-primary" /> Calendario Laboral de Festivos del Taller
+            </CardTitle>
+            <CardDescription>
+              Configura los días festivos locales y nacionales. Los fichajes realizados en estas fechas se marcarán automáticamente como festivo trabajados.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex flex-wrap gap-3 items-end p-3 bg-muted/30 rounded-lg border">
+              <div className="space-y-1">
+                <Label className="text-xs">Fecha del festivo</Label>
+                <Input
+                  type="date"
+                  value={newHolidayDate}
+                  onChange={(e) => setNewHolidayDate(e.target.value)}
+                  className="w-40 text-sm"
+                />
+              </div>
+              <div className="space-y-1 flex-1 min-w-[200px]">
+                <Label className="text-xs">Nombre / Descripción</Label>
+                <Input
+                  placeholder="Ej: Fiesta Local / San José..."
+                  value={newHolidayName}
+                  onChange={(e) => setNewHolidayName(e.target.value)}
+                  className="text-sm"
+                />
+              </div>
+              <Button type="button" onClick={handleAddHoliday} size="sm" className="gap-1.5">
+                <Plus className="size-4" /> Añadir Festivo
+              </Button>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                Festivos Configurados ({settings.holidays?.length || 0})
+              </Label>
+              <div className="grid gap-2 sm:grid-cols-2">
+                {(settings.holidays || []).map((h) => (
+                  <div
+                    key={h.id}
+                    className="flex items-center justify-between p-2.5 rounded-md border bg-card text-sm"
+                  >
+                    <div>
+                      <span className="font-semibold text-primary">
+                        {new Date(h.date + "T00:00:00").toLocaleDateString("es-ES", {
+                          day: "numeric",
+                          month: "short",
+                          year: "numeric",
+                        })}
+                      </span>
+                      <span className="text-muted-foreground ml-2">· {h.name}</span>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="size-7 text-destructive hover:bg-destructive/10"
+                      onClick={() => handleRemoveHoliday(h.id)}
+                    >
+                      <Trash2 className="size-3.5" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* 1. Logo de la Empresa Settings */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -176,7 +278,7 @@ function ConfiguracionPage() {
           </CardContent>
         </Card>
 
-        {/* 2. Company Stamp & Signature Settings (Bottom Left Box) */}
+        {/* 2. Company Stamp & Signature Settings */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -247,7 +349,6 @@ function ConfiguracionPage() {
                 >
                   Quitar Sello
                 </Button>
-
               </div>
             ) : (
               <p className="text-xs text-muted-foreground italic">No se ha asignado sello. Se utilizará el sello con texto por defecto.</p>
@@ -264,4 +365,5 @@ function ConfiguracionPage() {
     </div>
   );
 }
+
 
