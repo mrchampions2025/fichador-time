@@ -430,20 +430,24 @@ export async function updatePayrollDetails(data: {
   bonuses: number;
   deductions: number;
   total: number;
+  note?: string;
 }) {
   const user = await getAuthUser();
   assertStaff(await loadRoles(user.id));
+  const payload: any = {
+    normal_hours: data.normal_hours,
+    overtime_hours: data.overtime_hours,
+    base_amount: data.base_amount,
+    overtime_amount: data.overtime_amount,
+    bonuses: data.bonuses,
+    deductions: data.deductions,
+    total: data.total,
+  };
+  if (data.note !== undefined) payload.note = data.note;
+
   const { error } = await supabase
     .from("payrolls")
-    .update({
-      normal_hours: data.normal_hours,
-      overtime_hours: data.overtime_hours,
-      base_amount: data.base_amount,
-      overtime_amount: data.overtime_amount,
-      bonuses: data.bonuses,
-      deductions: data.deductions,
-      total: data.total,
-    })
+    .update(payload)
     .eq("id", data.id);
   if (error) throw new Error(error.message);
   return { ok: true };

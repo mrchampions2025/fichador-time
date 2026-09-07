@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { SignatureCanvas } from "./SignatureCanvas";
 import { formatEuro, MONTHS_ES } from "@/lib/hours";
 import { getCompanySettings } from "@/lib/company.settings";
-import { Printer, Share2, Download, Plus, Trash2, Eye } from "lucide-react";
+import { Printer, Share2, Download, Plus, Trash2, Pencil, Save, Calendar } from "lucide-react";
 import { toast } from "sonner";
 import { viewPayrollDocumentPdf, downloadPayrollDocumentPdf, printPayrollDocument } from "@/lib/pdf.utils";
 
@@ -22,6 +22,14 @@ export type AdjustmentItem = {
   amount: number;
 };
 
+export type DateRowItem = {
+  id: string;
+  dateStr: string;
+  concept: string;
+  normalHours: number;
+  overtimeHours: number;
+};
+
 interface PayrollDocumentModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -29,6 +37,7 @@ interface PayrollDocumentModalProps {
   autoAction?: "view" | "download" | null;
   onSaveSignature?: (payrollId: string, signatureDataUrl: string) => void;
   onSaveAdjustments?: (payrollId: string, adjustments: AdjustmentItem[], total: number) => void;
+  onSaveFullDetails?: (payrollId: string, payload: any) => void;
 }
 
 export function PayrollDocumentModal({
@@ -38,33 +47,88 @@ export function PayrollDocumentModal({
   autoAction,
   onSaveSignature,
   onSaveAdjustments,
+  onSaveFullDetails,
 }: PayrollDocumentModalProps) {
   if (!payroll) return null;
 
   const company = getCompanySettings();
-  const [workerSignature, setWorkerSignature] = useState<string>(
-    payroll.worker_signature || ""
-  );
-  const [adjustments, setAdjustments] = useState<AdjustmentItem[]>(
-    payroll.adjustments || [
-      { id: "1", type: "anticipo", note: "Anticipo / Descuentos", amount: Number(payroll.deductions || 0) },
-      { id: "2", type: "extra", note: "Gastos / Trabajos Extras", amount: Number(payroll.bonuses || 0) },
-    ]
-  );
-  const [newNote, setNewNote] = useState("");
-  const [newAmount, setNewAmount] = useState("");
-  const [newType, setNewType] = useState<"anticipo" | "extra">("anticipo");
-  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
-
   const emp = payroll.employees || {};
   const monthName = MONTHS_ES[(payroll.period_month || 1) - 1] || "Periodo";
   const year = payroll.period_year || new Date().getFullYear();
   const fileName = `Nomina_${(emp.full_name || "Empleado").replace(/\s+/g, "_")}_${monthName}_${year}.pdf`;
 
+  // Parse stored dateRows & adjustments from payroll.note or fallback
+  const parseInitialData = () => {
+    let savedAdjustments: AdjustmentItem[] = [];
+    let savedDateRows: DateRowItem[] = [];
+
+    if (payroll.note) {
+      try {
+        const parsed = JSON.parse(payroll.note);
+        if (Array.isArray(parsed)) {
+          savedAdjustments = parsed;
+        } else if (parsed && typeof parsed === "object") {
+          if (Array.isArray(parsed.adjustments)) savedAdjustments = parsed.adjustments;
+          if (Array.isArray(parsed.dateRows)) savedDateRows = parsed.dateRows;
+        }
+      } catch (e) {
+        // Plain text note
+      }
+    }
+
+    if (savedAdjustments.length === 0) {
+      if (payroll.adjustments && Array.isArray(payroll.adjustments)) {
+        savedAdjustments = payroll.adjustments;
+      } else {
+        if (Number(payroll.deductions || 0) > 0) {
+          savedAdjustments.push({ id: "1", type: "anticipo", note: "Anticipo / Descuentos", amount: Number(payroll.deductions || 0) });
+        }
+        if (Number(payroll.bonuses || 0) > 0) {
+          savedAdjustments.push({ id: "2", type: "extra", note: "Gastos / Trabajos Extras", amount: Number(payroll.bonuses || 0) });
+        }
+      }
+    }
+
+    if (savedDateRows.length === 0) {
+      const normH = Number(payroll.normal_hours || 0);
+      const extraH = Number(payroll.overtime_hours || 0);
+
+      savedDateRows.push({
+        id: "default-1",
+        dateStr: `01 ${monthName.toLowerCase()} ${year}`,
+        concept: `Jornada Ordinaria (${normH} hrs)`,
+        normalHours: normH,
+        overtimeHours: extraH,
+      });
+    }
+
+    return { savedAdjustments, savedDateRows };
+  };
+
+  const initialData = parseInitialData();
+
+  const [workerSignature, setWorkerSignature] = useState<string>(
+    payroll.worker_signature || ""
+  );
+  const [adjustments, setAdjustments] = useState<AdjustmentItem[]>(initialData.savedAdjustments);
+  const [dateRows, setDateRows] = useState<DateRowItem[]>(initialData.savedDateRows);
+
+  // Form states for adding adjustments
+  const [newNote, setNewNote] = useState("");
+  const [newAmount, setNewAmount] = useState("");
+  const [newType, setNewType] = useState<"anticipo" | "extra">("anticipo");
+
+  // Form states for adding date rows
+  const [newDateStr, setNewDateStr] = useState("");
+  const [newConcept, setNewConcept] = useState("");
+  const [newNormHours, setNewNormHours] = useState("");
+  const [newExtraHours, setNewExtraHours] = useState("");
+
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+
   const autoActionDone = React.useRef(false);
 
   React.useEffect(() => {
-    // Reset the guard when the modal opens with a new action
     if (!open) {
       autoActionDone.current = false;
       return;
@@ -83,23 +147,103 @@ export function PayrollDocumentModal({
       } finally {
         setIsGeneratingPdf(false);
       }
-    }, 600); // allow modal DOM to fully render before capturing
+    }, 600);
     return () => clearTimeout(timer);
   }, [open, autoAction, fileName]);
 
-  const baseAmount = Number(payroll.base_amount || 0);
-  const overtimeAmount = Number(payroll.overtime_amount || 0);
-  const subtotal = baseAmount + overtimeAmount;
+  const empRate = Number(emp.hourly_rate || 12);
+  const empOvertimeMult = Number(emp.overtime_multiplier || 1.5);
 
-  const totalDiscounts = adjustments
-    .filter((a) => a.type === "anticipo" || a.type === "descuento")
-    .reduce((acc, curr) => acc + Number(curr.amount), 0);
+  // Dynamic calculations based on date rows
+  const totalNormHours = dateRows.reduce((acc, curr) => acc + Number(curr.normalHours || 0), 0);
+  const totalExtraHours = dateRows.reduce((acc, curr) => acc + Number(curr.overtimeHours || 0), 0);
 
-  const totalExtras = adjustments
-    .filter((a) => a.type === "extra" || a.type === "bono")
-    .reduce((acc, curr) => acc + Number(curr.amount), 0);
+  const baseAmount = Number((totalNormHours * empRate).toFixed(2));
+  const overtimeAmount = Number((totalExtraHours * empRate * empOvertimeMult).toFixed(2));
+  const subtotal = Number((baseAmount + overtimeAmount).toFixed(2));
 
-  const totalToPay = subtotal - totalDiscounts + totalExtras;
+  const totalDiscounts = Number(
+    adjustments
+      .filter((a) => a.type === "anticipo" || a.type === "descuento")
+      .reduce((acc, curr) => acc + Number(curr.amount || 0), 0)
+      .toFixed(2)
+  );
+
+  const totalExtras = Number(
+    adjustments
+      .filter((a) => a.type === "extra" || a.type === "bono")
+      .reduce((acc, curr) => acc + Number(curr.amount || 0), 0)
+      .toFixed(2)
+  );
+
+  const totalToPay = Number((subtotal - totalDiscounts + totalExtras).toFixed(2));
+
+  const persistAllChanges = (currentRows: DateRowItem[], currentAdjustments: AdjustmentItem[]) => {
+    const normH = currentRows.reduce((acc, curr) => acc + Number(curr.normalHours || 0), 0);
+    const extraH = currentRows.reduce((acc, curr) => acc + Number(curr.overtimeHours || 0), 0);
+    const base = Number((normH * empRate).toFixed(2));
+    const extraAmt = Number((extraH * empRate * empOvertimeMult).toFixed(2));
+    const subt = Number((base + extraAmt).toFixed(2));
+    const disc = Number(
+      currentAdjustments
+        .filter((a) => a.type === "anticipo" || a.type === "descuento")
+        .reduce((acc, curr) => acc + Number(curr.amount || 0), 0)
+        .toFixed(2)
+    );
+    const ext = Number(
+      currentAdjustments
+        .filter((a) => a.type === "extra" || a.type === "bono")
+        .reduce((acc, curr) => acc + Number(curr.amount || 0), 0)
+        .toFixed(2)
+    );
+    const tot = Number((subt - disc + ext).toFixed(2));
+
+    const payload = {
+      normal_hours: normH,
+      overtime_hours: extraH,
+      base_amount: base,
+      overtime_amount: extraAmt,
+      bonuses: ext,
+      deductions: disc,
+      total: tot,
+      note: JSON.stringify({ dateRows: currentRows, adjustments: currentAdjustments }),
+    };
+
+    if (onSaveFullDetails) {
+      onSaveFullDetails(payroll.id, payload);
+    } else if (onSaveAdjustments) {
+      onSaveAdjustments(payroll.id, currentAdjustments, tot);
+    }
+  };
+
+  const handleAddDateRow = () => {
+    if (!newDateStr || (!newNormHours && !newExtraHours)) {
+      toast.error("Indica una fecha y las horas de la jornada");
+      return;
+    }
+    const item: DateRowItem = {
+      id: Date.now().toString(),
+      dateStr: newDateStr,
+      concept: newConcept.trim() || `Jornada laboral (${newNormHours || 0} hrs)`,
+      normalHours: Number(newNormHours || 0),
+      overtimeHours: Number(newExtraHours || 0),
+    };
+    const updatedRows = [...dateRows, item];
+    setDateRows(updatedRows);
+    setNewDateStr("");
+    setNewConcept("");
+    setNewNormHours("");
+    setNewExtraHours("");
+    persistAllChanges(updatedRows, adjustments);
+    toast.success("Fecha/Jornada añadida a la nómina");
+  };
+
+  const handleRemoveDateRow = (id: string) => {
+    const updatedRows = dateRows.filter((r) => r.id !== id);
+    setDateRows(updatedRows);
+    persistAllChanges(updatedRows, adjustments);
+    toast.info("Fecha eliminada de la nómina");
+  };
 
   const handleAddAdjustment = () => {
     if (!newNote || !newAmount) return;
@@ -113,17 +257,15 @@ export function PayrollDocumentModal({
     setAdjustments(updated);
     setNewNote("");
     setNewAmount("");
-    if (onSaveAdjustments) {
-      onSaveAdjustments(payroll.id, updated, totalToPay);
-    }
+    persistAllChanges(dateRows, updated);
+    toast.success("Concepto de ajuste añadido");
   };
 
   const handleRemoveAdjustment = (id: string) => {
     const updated = adjustments.filter((a) => a.id !== id);
     setAdjustments(updated);
-    if (onSaveAdjustments) {
-      onSaveAdjustments(payroll.id, updated, totalToPay);
-    }
+    persistAllChanges(dateRows, updated);
+    toast.info("Concepto eliminado");
   };
 
   const handleSaveSignature = (dataUrl: string) => {
@@ -149,10 +291,7 @@ export function PayrollDocumentModal({
     window.open(url, "_blank");
   };
 
-
-
   const handleDownloadPdf = async () => {
-    console.log("Downloading PDF with fileName:", fileName);
     toast.info("Iniciando descarga PDF...");
     setIsGeneratingPdf(true);
     try {
@@ -168,7 +307,6 @@ export function PayrollDocumentModal({
     printPayrollDocument("payroll-document");
   };
 
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[92vh] overflow-y-auto p-4 sm:p-6 print:p-0 print:max-w-none print:shadow-none print:bg-transparent">
@@ -176,7 +314,6 @@ export function PayrollDocumentModal({
           <DialogTitle className="flex flex-wrap items-center justify-between gap-2">
             <span>Nómina - {emp.full_name || "Empleado"}</span>
             <div className="flex flex-wrap gap-2">
-
               <Button size="sm" variant="outline" onClick={handleDownloadPdf} disabled={isGeneratingPdf} className="text-blue-600 border-blue-500/30 hover:bg-blue-50">
                 <Download className="mr-1.5 size-4" /> {isGeneratingPdf ? "Generando..." : "Descargar PDF"}
               </Button>
@@ -190,8 +327,7 @@ export function PayrollDocumentModal({
           </DialogTitle>
         </DialogHeader>
 
-
-        {/* Printable Payroll Container (Renders 100% identically for Screen, Print, and PDF) */}
+        {/* Printable Payroll Container */}
         <div id="payroll-document" className="bg-white text-slate-800 p-6 rounded-lg shadow-sm border border-slate-200 print:border-none print:shadow-none space-y-6 print:w-full print:m-0">
           
           {/* 1. Header Banner */}
@@ -208,7 +344,7 @@ export function PayrollDocumentModal({
               </p>
             </div>
 
-            {/* Top Right: COMPANY LOGO (logoUrl) */}
+            {/* Top Right: COMPANY LOGO */}
             <div className="bg-white/10 p-2 rounded border border-white/20 flex items-center justify-center min-w-[120px] min-h-[60px]">
               {company.logoUrl ? (
                 <img src={company.logoUrl} crossOrigin="anonymous" alt="Logo Empresa" className="h-14 object-contain max-w-[140px]" />
@@ -221,63 +357,116 @@ export function PayrollDocumentModal({
             </div>
           </div>
 
-          {/* 2. Work Breakdown Table */}
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm border-collapse">
-              <thead>
-                <tr className="bg-[#e8ecef] text-slate-700 font-semibold border-b border-slate-300">
-                  <th className="p-3">Fecha</th>
-                  <th className="p-3">Concepto</th>
-                  <th className="p-3 text-center">Horas Norm.</th>
-                  <th className="p-3 text-center">Horas Ext.</th>
-                  <th className="p-3 text-right">Precio Unit.</th>
-                  <th className="p-3 text-right">Total (€)</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-200">
-                <tr>
-                  <td className="p-3 font-medium">01 {monthName.toLowerCase()} {year}</td>
-                  <td className="p-3">Jornada Ordinaria ({payroll.normal_hours || 0} hrs)</td>
-                  <td className="p-3 text-center">{payroll.normal_hours || 0}h</td>
-                  <td className="p-3 text-center">-</td>
-                  <td className="p-3 text-right">{formatEuro(Number(emp.hourly_rate || 12))}</td>
-                  <td className="p-3 text-right font-semibold">{formatEuro(baseAmount)}</td>
-                </tr>
-                {Number(payroll.overtime_hours || 0) > 0 && (
-                  <tr>
-                    <td className="p-3 font-medium">Periodo {monthName}</td>
-                    <td className="p-3">Horas Extraordinarias (Recargo {emp.overtime_multiplier || 1.5}x)</td>
-                    <td className="p-3 text-center">-</td>
-                    <td className="p-3 text-center">{payroll.overtime_hours}h</td>
-                    <td className="p-3 text-right">{formatEuro(Number(emp.hourly_rate || 12) * Number(emp.overtime_multiplier || 1.5))}</td>
-                    <td className="p-3 text-right font-semibold">{formatEuro(overtimeAmount)}</td>
+          {/* 2. Work Breakdown Table by Dates */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                Desglose de Fechas y Jornadas Trabajadas
+              </h4>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm border-collapse">
+                <thead>
+                  <tr className="bg-[#e8ecef] text-slate-700 font-semibold border-b border-slate-300">
+                    <th className="p-3">Fecha</th>
+                    <th className="p-3">Concepto</th>
+                    <th className="p-3 text-center">Horas Norm.</th>
+                    <th className="p-3 text-center">Horas Ext.</th>
+                    <th className="p-3 text-right">Precio Unit.</th>
+                    <th className="p-3 text-right">Total (€)</th>
+                    <th className="p-3 text-center print:hidden">Acciones</th>
                   </tr>
-                )}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-slate-200">
+                  {dateRows.map((r) => {
+                    const rowNormAmt = Number(r.normalHours || 0) * empRate;
+                    const rowExtraAmt = Number(r.overtimeHours || 0) * empRate * empOvertimeMult;
+                    const rowTotal = rowNormAmt + rowExtraAmt;
+
+                    return (
+                      <tr key={r.id}>
+                        <td className="p-3 font-medium">{r.dateStr}</td>
+                        <td className="p-3">{r.concept}</td>
+                        <td className="p-3 text-center">{r.normalHours || 0}h</td>
+                        <td className="p-3 text-center">{r.overtimeHours > 0 ? `${r.overtimeHours}h` : "-"}</td>
+                        <td className="p-3 text-right">{formatEuro(empRate)}</td>
+                        <td className="p-3 text-right font-semibold">{formatEuro(rowTotal)}</td>
+                        <td className="p-3 text-center print:hidden">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleRemoveDateRow(r.id)}
+                            className="h-7 w-7 text-red-500 hover:text-red-700 hover:bg-red-50"
+                            title="Quitar fecha errónea"
+                          >
+                            <Trash2 className="size-3.5" />
+                          </Button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Form to add custom date / shift row (hidden in print) */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-2 pt-2 print:hidden bg-slate-50 p-3 rounded border border-slate-200">
+              <Input
+                placeholder="Fecha (ej: 15 sept 2026)"
+                value={newDateStr}
+                onChange={(e) => setNewDateStr(e.target.value)}
+                className="h-9 text-xs"
+              />
+              <Input
+                placeholder="Concepto (ej: Turno extra / Olvidado)"
+                value={newConcept}
+                onChange={(e) => setNewConcept(e.target.value)}
+                className="h-9 text-xs"
+              />
+              <Input
+                type="number"
+                step="0.5"
+                placeholder="Horas norm. (ej: 8)"
+                value={newNormHours}
+                onChange={(e) => setNewNormHours(e.target.value)}
+                className="h-9 text-xs"
+              />
+              <Input
+                type="number"
+                step="0.5"
+                placeholder="Horas ext. (ej: 2)"
+                value={newExtraHours}
+                onChange={(e) => setNewExtraHours(e.target.value)}
+                className="h-9 text-xs"
+              />
+              <Button size="sm" onClick={handleAddDateRow} className="h-9 bg-primary">
+                <Plus className="mr-1 size-3.5" /> Añadir Fecha
+              </Button>
+            </div>
           </div>
 
           {/* 3. 4 Colored KPI Summary Cards */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            {/* Card 1: Sub-total (Green Accent) */}
+            {/* Card 1: Sub-total */}
             <div className="bg-slate-50 p-4 rounded-md border-l-4 border-emerald-500 shadow-xs">
               <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">SUB-TOTAL</p>
               <p className="text-lg font-bold text-slate-800 mt-1">{formatEuro(subtotal)}</p>
             </div>
 
-            {/* Card 2: Anticipos / Descuentos (Orange Accent) */}
+            {/* Card 2: Anticipos / Descuentos */}
             <div className="bg-slate-50 p-4 rounded-md border-l-4 border-amber-500 shadow-xs">
               <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">ANTICIPOS / DESCUENTOS</p>
               <p className="text-lg font-bold text-slate-800 mt-1">{formatEuro(totalDiscounts)}</p>
             </div>
 
-            {/* Card 3: Gastos / Trabajos Extras (Purple Accent) */}
+            {/* Card 3: Gastos / Trabajos Extras */}
             <div className="bg-slate-50 p-4 rounded-md border-l-4 border-violet-500 shadow-xs">
               <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">GASTOS / EXTRAS</p>
               <p className="text-lg font-bold text-slate-800 mt-1">{formatEuro(totalExtras)}</p>
             </div>
 
-            {/* Card 4: Total a Pagar (Blue Accent) */}
+            {/* Card 4: Total a Pagar */}
             <div className="bg-slate-50 p-4 rounded-md border-l-4 border-sky-500 shadow-xs">
               <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">TOTAL A PAGAR</p>
               <p className="text-lg font-bold text-slate-900 mt-1">{formatEuro(totalToPay)}</p>
@@ -318,7 +507,7 @@ export function PayrollDocumentModal({
               </table>
             </div>
 
-            {/* Form to add custom adjustment item (hidden in print) */}
+            {/* Form to add custom adjustment item */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-2 pt-2 print:hidden bg-slate-50 p-3 rounded border border-slate-200">
               <select
                 value={newType}
@@ -350,7 +539,7 @@ export function PayrollDocumentModal({
 
           {/* 5. Signatures Block */}
           <div className="pt-6 grid grid-cols-2 gap-8 border-t border-slate-200">
-            {/* Left: FIRMA Y SELLO DE LA EMPRESA (stampUrl) */}
+            {/* Left: FIRMA Y SELLO DE LA EMPRESA */}
             <div className="flex flex-col items-center justify-end text-center space-y-2">
               <div className="min-h-[100px] flex items-center justify-center">
                 {company.stampUrl ? (
@@ -370,7 +559,7 @@ export function PayrollDocumentModal({
               </div>
             </div>
 
-            {/* Right: FIRMA DEL TRABAJADOR (workerSignature) */}
+            {/* Right: FIRMA DEL TRABAJADOR */}
             <div className="flex flex-col items-center justify-end text-center space-y-2">
               <div className="min-h-[100px] w-full flex items-center justify-center">
                 {workerSignature ? (

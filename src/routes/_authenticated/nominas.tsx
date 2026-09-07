@@ -88,6 +88,14 @@ function NominasPage() {
     qc.invalidateQueries({ queryKey: ["payrolls", year, month] });
   };
 
+  const handleSaveFullDetails = async (payrollId: string, payload: any) => {
+    await updatePayrollDetails({
+      id: payrollId,
+      ...payload,
+    });
+    qc.invalidateQueries({ queryKey: ["payrolls", year, month] });
+  };
+
   const rows = payrolls.data ?? [];
   const total = rows.reduce((a: number, r: any) => a + Number(r.total), 0);
 
@@ -275,6 +283,7 @@ function NominasPage() {
           autoAction={autoAction}
           onSaveSignature={handleSaveSignature}
           onSaveAdjustments={handleSaveAdjustments}
+          onSaveFullDetails={handleSaveFullDetails}
         />
       )}
 
