@@ -25,7 +25,6 @@ function FicharPage() {
 
   const [now, setNow] = useState(() => new Date());
   const [breakMinutes, setBreakMinutes] = useState(0);
-  const [useGps, setUseGps] = useState(true);
 
   useEffect(() => {
     const t = setInterval(() => setNow(new Date()), 1000);
@@ -50,23 +49,38 @@ function FicharPage() {
 
   const inMut = useMutation({
     mutationFn: async () => {
-      let coords: { latitude?: number; longitude?: number } = {};
-      if (useGps && typeof navigator !== "undefined" && navigator.geolocation) {
-        coords = await new Promise((resolve) =>
-          navigator.geolocation.getCurrentPosition(
-            (p) => resolve({ latitude: p.coords.latitude, longitude: p.coords.longitude }),
-            () => resolve({}),
-            { timeout: 5000 },
-          ),
-        );
+      if (typeof navigator === "undefined" || !navigator.geolocation) {
+        throw new Error("Tu dispositivo o navegador no soporta la función de geolocalización GPS obligatoria.");
       }
+
+      toast.info("Comprobando ubicación GPS obligatoria...");
+
+      const coords = await new Promise<{ latitude: number; longitude: number }>((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(
+          (p) => resolve({ latitude: p.coords.latitude, longitude: p.coords.longitude }),
+          (err) => {
+            let reason = "Para fichar es IMPRESCINDIBLE activar la ubicación GPS en tu dispositivo (móvil o PC).";
+            if (err.code === err.PERMISSION_DENIED) {
+              reason =
+                "Permiso de ubicación denegado. Para poder fichar, activa y concede permisos de ubicación en los ajustes de tu navegador o móvil (Android / iPhone / PC).";
+            } else if (err.code === err.POSITION_UNAVAILABLE) {
+              reason = "Ubicación GPS no disponible. Por favor, activa el GPS / Ubicación en los ajustes de tu teléfono o PC.";
+            } else if (err.code === err.TIMEOUT) {
+              reason = "Tiempo de espera agotado al solicitar tu GPS. Asegúrate de tener activa la ubicación e inténtalo de nuevo.";
+            }
+            reject(new Error(reason));
+          },
+          { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+        );
+      });
+
       return clockIn(coords);
     },
     onSuccess: () => {
-      toast.success("Entrada registrada");
+      toast.success("Entrada registrada con ubicación GPS comprobada correctamente");
       refresh();
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => toast.error(e.message, { duration: 7000 }),
   });
 
   const outMut = useMutation({
@@ -150,20 +164,16 @@ function FicharPage() {
             <div className="w-full max-w-sm space-y-3">
               <Button
                 size="lg"
-                className="h-14 w-full text-base"
+                className="h-14 w-full text-base bg-emerald-600 hover:bg-emerald-700 text-white"
                 disabled={inMut.isPending}
                 onClick={() => inMut.mutate()}
               >
-                <LogIn className="mr-2 size-5" /> Fichar entrada
+                <LogIn className="mr-2 size-5" /> {inMut.isPending ? "Comprobando GPS…" : "Fichar entrada"}
               </Button>
-              <button
-                type="button"
-                onClick={() => setUseGps((v) => !v)}
-                className="flex w-full items-center justify-center gap-2 text-xs text-muted-foreground hover:text-foreground"
-              >
-                <MapPin className="size-3.5" />
-                {useGps ? "Guardar ubicación al fichar" : "Sin guardar ubicación"}
-              </button>
+              <div className="flex items-center justify-center gap-1.5 pt-1 text-xs font-semibold text-emerald-700 dark:text-emerald-400">
+                <MapPin className="size-4 shrink-0" />
+                <span>Ubicación GPS OBLIGATORIA para fichar</span>
+              </div>
             </div>
           )}
         </CardContent>

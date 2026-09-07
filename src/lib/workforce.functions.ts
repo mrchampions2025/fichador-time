@@ -102,6 +102,13 @@ export async function getMe() {
 export async function clockIn(data: { latitude?: number; longitude?: number; note?: string } = {}) {
   const user = await getAuthUser();
   const userId = user.id;
+
+  if (typeof data.latitude !== "number" || typeof data.longitude !== "number") {
+    throw new Error(
+      "No se ha podido obtener la ubicación GPS obligatoria. Por favor, activa la ubicación en tu dispositivo y concede permisos para poder fichar."
+    );
+  }
+
   const { data: emp } = await supabase
     .from("employees")
     .select("id, active")
@@ -123,8 +130,8 @@ export async function clockIn(data: { latitude?: number; longitude?: number; not
     .insert({
       employee_id: emp.id,
       clock_in: new Date().toISOString(),
-      latitude: data.latitude ?? null,
-      longitude: data.longitude ?? null,
+      latitude: data.latitude,
+      longitude: data.longitude,
       note: data.note ?? null,
     })
     .select("*")
