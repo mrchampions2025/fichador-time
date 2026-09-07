@@ -216,14 +216,29 @@ export function PayrollDocumentModal({
     }
   };
 
+  const formatDateForDocument = (dateIsoOrStr: string): string => {
+    if (!dateIsoOrStr) return "";
+    if (dateIsoOrStr.includes("-")) {
+      const parts = dateIsoOrStr.split("-");
+      if (parts.length === 3) {
+        const y = parseInt(parts[0], 10);
+        const m = parseInt(parts[1], 10) - 1;
+        const d = parseInt(parts[2], 10);
+        const monthNameStr = MONTHS_ES[m] || "";
+        return `${String(d).padStart(2, "0")} ${monthNameStr.toLowerCase()} ${y}`;
+      }
+    }
+    return dateIsoOrStr;
+  };
+
   const handleAddDateRow = () => {
     if (!newDateStr || (!newNormHours && !newExtraHours)) {
-      toast.error("Indica una fecha y las horas de la jornada");
+      toast.error("Selecciona una fecha en el calendario y las horas de la jornada");
       return;
     }
     const item: DateRowItem = {
       id: Date.now().toString(),
-      dateStr: newDateStr,
+      dateStr: formatDateForDocument(newDateStr),
       concept: newConcept.trim() || `Jornada laboral (${newNormHours || 0} hrs)`,
       normalHours: Number(newNormHours || 0),
       overtimeHours: Number(newExtraHours || 0),
@@ -413,7 +428,7 @@ export function PayrollDocumentModal({
             {/* Form to add custom date / shift row (hidden in print) */}
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-2 pt-2 print:hidden bg-slate-50 p-3 rounded border border-slate-200">
               <Input
-                placeholder="Fecha (ej: 15 sept 2026)"
+                type="date"
                 value={newDateStr}
                 onChange={(e) => setNewDateStr(e.target.value)}
                 className="h-9 text-xs"
