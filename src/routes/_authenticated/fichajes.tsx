@@ -1,10 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AuthGate } from "@/components/AuthGate";
 import { createFileRoute } from "@tanstack/react-router";
-import { Download, Pencil, Plus, Trash2 } from "lucide-react";
+import { Download, MapPin, Pencil, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -64,6 +65,8 @@ function FichajesPage() {
     clock_out: "",
     break_minutes: 0,
     note: "",
+    latitude: null as number | null,
+    longitude: null as number | null,
   });
 
   const { from, to } = monthRange(year, month);
@@ -105,7 +108,7 @@ function FichajesPage() {
   const rows = entries.data ?? [];
 
   function exportCsv() {
-    const header = "Empleado;Entrada;Salida;Pausa (min);Horas\n";
+    const header = "Empleado;Entrada;Salida;Pausa (min);Horas;Latitud;Longitud\n";
     const body = rows
       .map((r: any) =>
         [
@@ -114,6 +117,8 @@ function FichajesPage() {
           r.clock_out ? new Date(r.clock_out).toLocaleString("es-ES") : "",
           r.break_minutes,
           entryHours(r).toFixed(2).replace(".", ","),
+          r.latitude ?? "",
+          r.longitude ?? "",
         ].join(";"),
       )
       .join("\n");
@@ -132,7 +137,7 @@ function FichajesPage() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground">Fichajes</h1>
           <p className="text-sm text-muted-foreground">
-            Registro completo del taller con corrección manual de incidencias.
+            Registro completo del taller con ubicación GPS y corrección manual.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -185,6 +190,8 @@ function FichajesPage() {
                 clock_out: "",
                 break_minutes: 0,
                 note: "",
+                latitude: null,
+                longitude: null,
               });
               setOpen(true);
             }}
@@ -202,6 +209,7 @@ function FichajesPage() {
                 <TableHead>Empleado</TableHead>
                 <TableHead>Entrada</TableHead>
                 <TableHead>Salida</TableHead>
+                <TableHead>Ubicación GPS</TableHead>
                 <TableHead>Pausa</TableHead>
                 <TableHead>Horas</TableHead>
                 <TableHead />
@@ -210,7 +218,7 @@ function FichajesPage() {
             <TableBody>
               {rows.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={6} className="py-8 text-center text-muted-foreground">
+                  <TableCell colSpan={7} className="py-8 text-center text-muted-foreground">
                     No hay fichajes en este periodo.
                   </TableCell>
                 </TableRow>
@@ -224,6 +232,24 @@ function FichajesPage() {
                       new Date(r.clock_out).toLocaleString("es-ES")
                     ) : (
                       <span className="text-accent">En curso</span>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {r.latitude && r.longitude ? (
+                      <a
+                        href={`https://www.google.com/maps?q=${r.latitude},${r.longitude}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 text-xs text-blue-600 hover:underline bg-blue-50 dark:bg-blue-950/40 px-2.5 py-1 rounded border border-blue-200 dark:border-blue-800 font-medium"
+                        title={`Coordenadas: ${r.latitude}, ${r.longitude}`}
+                      >
+                        <MapPin className="size-3.5 text-blue-600" />
+                        Ver mapa
+                      </a>
+                    ) : (
+                      <Badge variant="outline" className="text-[11px] text-muted-foreground border-muted">
+                        Sin GPS
+                      </Badge>
                     )}
                   </TableCell>
                   <TableCell>{r.break_minutes} min</TableCell>
@@ -241,6 +267,8 @@ function FichajesPage() {
                           clock_out: toLocalInput(r.clock_out),
                           break_minutes: r.break_minutes,
                           note: r.note ?? "",
+                          latitude: r.latitude ?? null,
+                          longitude: r.longitude ?? null,
                         });
                         setOpen(true);
                       }}

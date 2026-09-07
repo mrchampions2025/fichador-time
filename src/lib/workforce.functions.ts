@@ -421,6 +421,34 @@ export async function savePayrollAdjustments(data: { payrollId: string; adjustme
   return { ok: true };
 }
 
+export async function updatePayrollDetails(data: {
+  id: string;
+  normal_hours: number;
+  overtime_hours: number;
+  base_amount: number;
+  overtime_amount: number;
+  bonuses: number;
+  deductions: number;
+  total: number;
+}) {
+  const user = await getAuthUser();
+  assertStaff(await loadRoles(user.id));
+  const { error } = await supabase
+    .from("payrolls")
+    .update({
+      normal_hours: data.normal_hours,
+      overtime_hours: data.overtime_hours,
+      base_amount: data.base_amount,
+      overtime_amount: data.overtime_amount,
+      bonuses: data.bonuses,
+      deductions: data.deductions,
+      total: data.total,
+    })
+    .eq("id", data.id);
+  if (error) throw new Error(error.message);
+  return { ok: true };
+}
+
 
 export async function generatePayrolls(data: { year: number; month: number }) {
   const user = await getAuthUser();
@@ -491,9 +519,23 @@ export async function getDashboard(data: { year: number; month: number }) {
     .from("absence_requests")
     .select("id")
     .eq("status", "pendiente");
+  const { data: openEntries } = await supabase
+    .from("time_entries")
+    .select("id, clock_in, latitude, longitude, note, employee_id, employees(full_name)")
+    .is("clock_out", null)
+    .order("clock_in", { ascending: false });
 
   const active = (employees ?? []).filter((e: any) => e.active);
   const working = (entries ?? []).filter((e: any) => !e.clock_out).length;
+
+  const activeClockIns = (openEntries ?? []).map((e: any) => ({
+    id: e.id,
+    employeeName: e.employees?.full_name || "Empleado",
+    clockIn: e.clock_in,
+    latitude: e.latitude,
+    longitude: e.longitude,
+    note: e.note,
+  }));
 
   let totalHours = 0;
   let overtimeHours = 0;
@@ -532,6 +574,7 @@ export async function getDashboard(data: { year: number; month: number }) {
   return {
     employees: active.length,
     working,
+    activeClockIns,
     pendingAbsences: (pending ?? []).length,
     totalHours: Number(totalHours.toFixed(2)),
     overtimeHours: Number(overtimeHours.toFixed(2)),

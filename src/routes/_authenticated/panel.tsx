@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { AuthGate } from "@/components/AuthGate";
 import { createFileRoute } from "@tanstack/react-router";
-import { AlarmClock, CalendarClock, Euro, Users } from "lucide-react";
+import { AlarmClock, CalendarClock, Euro, MapPin, Users } from "lucide-react";
 import { useState } from "react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -93,6 +93,47 @@ function PanelPage() {
         />
         <Kpi icon={Euro} label="Coste laboral" value={formatEuro(data?.cost ?? 0)} />
       </div>
+
+      {(data?.activeClockIns ?? []).length > 0 && (
+        <Card className="border-emerald-500/30 bg-emerald-500/5">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-base text-emerald-700 dark:text-emerald-400">
+              <span className="relative flex size-3">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex size-3 rounded-full bg-emerald-500"></span>
+              </span>
+              Trabajadores en turno en este momento ({(data?.activeClockIns ?? []).length})
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {data?.activeClockIns.map((item: any) => (
+              <div key={item.id} className="flex flex-col justify-between rounded-lg border bg-card p-3 text-sm shadow-sm">
+                <div className="flex items-center justify-between font-medium">
+                  <span className="text-foreground">{item.employeeName}</span>
+                  <span className="text-xs text-muted-foreground">
+                    {new Date(item.clockIn).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                  </span>
+                </div>
+                {item.latitude && item.longitude ? (
+                  <a
+                    href={`https://www.google.com/maps?q=${item.latitude},${item.longitude}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="mt-2 inline-flex items-center gap-1.5 text-xs text-emerald-600 hover:underline dark:text-emerald-400 font-medium"
+                  >
+                    <MapPin className="size-3.5 shrink-0" />
+                    <span>
+                      Ubicación GPS: {Number(item.latitude).toFixed(4)}, {Number(item.longitude).toFixed(4)}
+                    </span>
+                  </a>
+                ) : (
+                  <span className="mt-2 text-xs text-muted-foreground italic">Sin ubicación GPS registrada</span>
+                )}
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader>
