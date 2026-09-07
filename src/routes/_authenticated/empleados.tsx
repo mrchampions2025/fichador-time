@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AuthGate } from "@/components/AuthGate";
 import { createFileRoute } from "@tanstack/react-router";
-import { Pencil, Plus } from "lucide-react";
+import { KeyRound, Pencil, Plus } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -27,7 +27,7 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { formatEuro } from "@/lib/hours";
-import { listEmployees, listRoles, saveEmployee, setEmployeeRole } from "@/lib/workforce.functions";
+import { listEmployees, listRoles, saveEmployee, setEmployeeRole, sendPasswordResetEmail } from "@/lib/workforce.functions";
 
 export const Route = createFileRoute("/_authenticated/empleados")({
   component: () => (
@@ -112,6 +112,15 @@ function EmpleadosPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const handleResetPassword = async (email: string) => {
+    try {
+      await sendPasswordResetEmail(email);
+      toast.success(`Correo de restablecimiento enviado a ${email}`);
+    } catch (err: any) {
+      toast.error(err.message);
+    }
+  };
+
 
   const roleOf = (userId: string | null) =>
     (roles.data ?? []).find((r: any) => r.user_id === userId)?.role ?? "empleado";
@@ -157,7 +166,17 @@ function EmpleadosPage() {
                     )}
                   </div>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2 justify-end">
+                  {e.email && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="text-amber-600 border-amber-500/30 hover:bg-amber-50"
+                      onClick={() => handleResetPassword(e.email)}
+                    >
+                      <KeyRound className="mr-1 size-3.5" /> Resetear Contraseña
+                    </Button>
+                  )}
                   <Button
                     variant="outline"
                     size="sm"

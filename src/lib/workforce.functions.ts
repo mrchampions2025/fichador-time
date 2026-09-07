@@ -275,7 +275,17 @@ export async function saveEmployee(data: {
         authError.message.toLowerCase().includes("already registered") ||
         authError.message.toLowerCase().includes("already exists")
       ) {
-        console.warn("User already exists in Auth:", authError.message);
+        // User is already registered in Supabase Auth, trigger password reset email to update credentials
+        try {
+          await supabase.auth.resetPasswordForEmail(payload.email, {
+            redirectTo: `${typeof window !== "undefined" ? window.location.origin : ""}/auth?type=recovery`,
+          });
+        } catch (e) {
+          console.warn("Reset email trigger error:", e);
+        }
+        throw new Error(
+          `El usuario ${payload.email} ya existe en el sistema. Se ha enviado un correo con el enlace para restablecer su contraseña.`
+        );
       } else {
         throw new Error(`Error en el registro de acceso para ${payload.email}: ${authError.message}`);
       }
@@ -585,4 +595,14 @@ export async function getDashboard(data: { year: number; month: number }) {
     cost: Number(cost.toFixed(2)),
     perEmployee,
   };
+}
+
+export async function sendPasswordResetEmail(email: string) {
+  if (!email || !email.trim()) {
+    throw new Error("El empleado no tiene un correo electrónico configurado.");
+  }
+  const redirectTo = `${typeof window !== "undefined" ? window.location.origin : ""}/auth?type=recovery`;
+  const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
+  if (error) throw new Error(`Error al enviar el correo de recuperación: ${error.message}`);
+  return { ok: true };
 }
